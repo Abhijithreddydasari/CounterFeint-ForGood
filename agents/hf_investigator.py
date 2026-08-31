@@ -122,6 +122,7 @@ class HFInvestigator(LLMPolicyBase):
         model_name_or_path: str,
         *,
         load_in_4bit: bool = True,
+        torch_dtype: Optional[str] = None,
         lora_path: Optional[str] = None,
         device_map: str = "auto",
         **kwargs: Any,
@@ -146,6 +147,11 @@ class HFInvestigator(LLMPolicyBase):
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_use_double_quant=True,
             )
+        else:
+            import torch
+
+            dtype = torch.bfloat16 if torch_dtype in (None, "bfloat16", "bf16") else torch.float16
+            model_kwargs["torch_dtype"] = dtype
         model = AutoModelForCausalLM.from_pretrained(
             model_name_or_path, **model_kwargs
         )

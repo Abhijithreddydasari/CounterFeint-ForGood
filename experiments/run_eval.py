@@ -122,6 +122,8 @@ def run_in_process_eval(
     all_rows: List[EpisodeMetrics] = []
     by_task: Dict[str, List[EpisodeMetrics]] = {}
 
+    n_total = sum(len(s) for s in seeds.values())
+    done = 0
     for task_id, task_seeds in seeds.items():
         task_rows: List[EpisodeMetrics] = []
         for seed in task_seeds:
@@ -133,6 +135,13 @@ def run_in_process_eval(
             )
             task_rows.append(row)
             all_rows.append(row)
+            done += 1
+            print(
+                f"[{done}/{n_total}] {task_id} seed={seed} "
+                f"grader={row.grader_score:.3f} leaks={row.n_fraud_leaks}/"
+                f"{row.n_ground_truth_fraud}",
+                flush=True,
+            )
         by_task[task_id] = task_rows
 
     aggregates = {
