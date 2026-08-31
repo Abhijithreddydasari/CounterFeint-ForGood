@@ -12,7 +12,7 @@ FN > FP. Investigation under budget, not one-shot classification.
 
 ## 2. System (extends Paper 1)
 
-Same three-agent FraudArena + dual-track Auditor. See `papers/verify_agents/PAPER.md`.
+Same three-agent FraudArena + dual-track Auditor. Verification benchmark in companion work [anonymous ref].
 
 ## 3. Diverse Synthetic Data
 

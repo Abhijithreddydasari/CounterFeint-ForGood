@@ -11,10 +11,17 @@ build/
 .mypy_cache/
 .ruff_cache/
 baseline_scores.json
-outputs/
+/outputs/
+training_outputs/
 convo_logging/
 *.log
 Review.md
-papers/verify_agents/supplementary_code/
-papers/verify_agents/counterfeint_anonymous.zip
 .cursor/
+
+# Paper 1 artifacts — companion repo only. Do not commit.
+papers/verify_agents/
+experiments/outputs/auditor_expanded/
+experiments/outputs/corruption/
+experiments/outputs/ablation/
+experiments/outputs/bakeoff/
+experiments/outputs/_smoke/

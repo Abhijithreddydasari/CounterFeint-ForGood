@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "openenv-counterfeint"
 version = "0.1.0"
-description = "CounterFeint — Ad Fraud Investigation Environment for OpenEnv. Real-world ad fraud detection and investigation simulation."
+description = "CounterFeint — OpenEnv arena for budget-constrained ad-fraud investigation and harm-centric evaluation."
 requires-python = ">=3.11"
 dependencies = [
     "openenv-core[core]>=0.2.3",
