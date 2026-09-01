@@ -1,0 +1,30 @@
+{
+  "mode": "proper",
+  "base_model": "Qwen/Qwen3-4B-Instruct-2507",
+  "finished_utc": "2026-08-31T21:47:24.319757+00:00",
+  "n_train_rows": 402,
+  "train_seconds": 4441.2,
+  "before": {
+    "leak_rate": 0.05176470588235294,
+    "leak_ci": {
+      "mean": 0.03465465133421789,
+      "lo": 0.013445378151260503,
+      "hi": 0.06116762494471473
+    },
+    "grader_mean": 0.7064824737030111,
+    "fallback_total": 0
+  },
+  "after": {
+    "leak_rate": 0.047058823529411764,
+    "leak_ci": {
+      "mean": 0.03138667747800875,
+      "lo": 0.011683006535947713,
+      "hi": 0.05596896653398201
+    },
+    "grader_mean": 0.7041993925616754,
+    "fallback_total": 0
+  },
+  "delta_leak_rate": -0.004705882352941178,
+  "delta_grader": -0.0022830811413356855,
+  "output_dir": "/vol/runs/qwen3-4b-proper-20260831T185735Z"
+}
