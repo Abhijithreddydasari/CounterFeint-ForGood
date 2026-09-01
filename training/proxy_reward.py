@@ -55,6 +55,38 @@ from counterfeint.models import AdReviewAction
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n(.*?)```", re.DOTALL)
 
 
+def _unwrap_completion(val: Any) -> str:
+    """TRL conversational completions are ``[[{role, content}]]`` / ``[{role, content}]``.
+
+    Older TRL (hackathon notebook) passed plain strings. TRL 1.12 with a chat
+    ``prompt`` column passes message dicts. ``str(dict)`` still contains
+    ``{``, ``action_type``, ``ad_id``, ``}``, so the partial-credit path
+    returns **exactly -0.1** for every sample → ``reward_std=0`` → GRPO is
+    a no-op (loss=0, kl=0, grad_norm=0).
+    """
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    if isinstance(val, dict):
+        for key in ("content", "text", "completion"):
+            if val.get(key) is not None:
+                return _unwrap_completion(val[key])
+        return str(val)
+    if isinstance(val, list):
+        if not val:
+            return ""
+        if all(isinstance(x, dict) for x in val):
+            for msg in reversed(val):
+                if msg.get("role") == "assistant":
+                    return _unwrap_completion(msg.get("content", ""))
+            return _unwrap_completion(val[-1])
+        if len(val) == 1:
+            return _unwrap_completion(val[0])
+        return "".join(_unwrap_completion(x) for x in val)
+    return str(val)
+
+
 def _extract_json_text(raw: str) -> str:
     text = (raw or "").strip()
     m = _JSON_FENCE_RE.search(text)
@@ -249,19 +281,14 @@ def make_proxy_reward_fn(
             return str(prompt)
         return prompt
 
-    def _to_str(val: Any) -> str:
-        if isinstance(val, str):
-            return val
-        if isinstance(val, list):
-            return " ".join(str(x) for x in val)
-        return str(val)
-
     def reward_fn(prompts, completions, **_: Any) -> List[float]:
         out: List[float] = []
         for prompt, completion in zip(prompts, completions):
-            completion = _to_str(completion)
+            completion = _unwrap_completion(completion)
             prompt_key = _extract_user_text(prompt)
-            prompt_text = _to_str(prompt_key)
+            if not isinstance(prompt_key, str):
+                prompt_key = _unwrap_completion(prompt_key)
+            prompt_text = prompt_key
             gold = gold_lookup.get(prompt_key)
             if gold is None:
                 # Prompt the trainer batched but we never recorded —

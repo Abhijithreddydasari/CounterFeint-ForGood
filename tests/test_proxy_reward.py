@@ -203,6 +203,25 @@ class TestRewardFunctionIntegration:
         # 0.6 schema + 0.15 coherence + 0.135 conf + 0.1 concise (no gold)
         assert rewards[0] == pytest.approx(0.985, abs=_ABS)
 
+    def test_trl_conversational_completion_is_unwrapped_not_partial_credit(self) -> None:
+        """TRL 1.12 GRPO passes completions as chat dicts, not strings.
+
+        The old ``" ".join(str(x) for x in val)`` path scored every
+        completion at exactly -0.1 (partial-credit on the dict repr),
+        so reward_std=0 and GRPO never updated. Unwrap must recover
+        the assistant JSON and score it as a valid action.
+        """
+        gold_lookup: dict[str, Any] = {}
+        reward_fn = make_proxy_reward_fn(gold_lookup=gold_lookup)
+        json_text = _verdict_completion(ad_id="ad_001")
+        conversational = [[{"role": "assistant", "content": json_text}]]
+        rewards = reward_fn(
+            prompts=["Pending: ad_001"],
+            completions=conversational,
+        )
+        assert rewards[0] == pytest.approx(0.985, abs=_ABS)
+        assert rewards[0] != pytest.approx(-0.1, abs=1e-6)
+
     def test_build_gold_lookup_extracts_action_class_from_repr(self) -> None:
         sample = SimpleNamespace(
             prompt="Pending: ad_001",

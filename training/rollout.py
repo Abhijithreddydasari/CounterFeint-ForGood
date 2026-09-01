@@ -125,7 +125,9 @@ class RecordingHFInvestigator:
         self._inner.reset()
 
     def act(self, observation: Dict[str, Any]) -> Any:
+        fallback_before = int(getattr(self._inner, "fallback_count", 0) or 0)
         result = self._inner.act(observation)
+        fallback_after = int(getattr(self._inner, "fallback_count", 0) or 0)
         self._last_step_idx += 1
         prompt = getattr(self._inner, "last_prompt", None)
         completion = getattr(self._inner, "last_completion", None)
@@ -134,8 +136,18 @@ class RecordingHFInvestigator:
                 "step_idx": self._last_step_idx,
                 "prompt": prompt,
                 "completion": completion,
-                "fallback_used": prompt is None or completion is None,
+                "fallback_used": (
+                    fallback_after > fallback_before
+                    or prompt is None
+                    or completion is None
+                ),
                 "action_repr": repr(result),
+                "prompt_token_ids": getattr(
+                    self._inner, "last_prompt_token_ids", None
+                ),
+                "completion_token_ids": getattr(
+                    self._inner, "last_completion_token_ids", None
+                ),
             }
         )
         return result

@@ -22,8 +22,10 @@ from .proxy_reward import (
 from .trajectory_grpo import (
     RewardMode,
     TrajectoryRecord,
+    TrajectoryTurn,
     collect_trajectory_group,
     compute_group_advantages,
+    optimise_trajectory_group,
     run_trajectory_grpo_collection,
 )
 from .rollout import (
@@ -45,6 +47,7 @@ __all__ = [
     "RecordingHFInvestigator",
     "RewardMode",
     "TrajectoryRecord",
+    "TrajectoryTurn",
     "TracingPolicy",
     "build_gold_lookup",
     "classify_action",
@@ -55,6 +58,7 @@ __all__ = [
     "collect_trajectory_group",
     "compute_group_advantages",
     "make_proxy_reward_fn",
+    "optimise_trajectory_group",
     "proxy_reward_one",
     "records_to_samples",
     "run_trajectory_grpo_collection",

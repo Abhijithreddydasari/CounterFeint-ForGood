@@ -328,6 +328,16 @@ the Investigator and slightly cheaper to host.
 
 ## 8. Troubleshooting
 
+### "loss=0, kl=0, reward=-0.1, reward_std=0 for the whole run"
+
+TRL ≥1.0 conversational GRPO passes completions as
+`[[{"role": "assistant", "content": "<json>"}]]`, not raw strings. If the
+reward function stringifies the chat dict, the dict repr still contains
+`{`, `action_type`, `ad_id`, `}` so partial credit is **exactly -0.1**
+on every sample → zero advantage → LoRA never moves. `proxy_reward.py`
+must unwrap `completion[0]["content"]` before `json.loads`. Eval leak
+rates can still look real (they score env JSON, not the proxy).
+
 ### "Reward is flat for the first 50 steps"
 
 Usually means the Investigator's completions are not parsing as valid JSON, so

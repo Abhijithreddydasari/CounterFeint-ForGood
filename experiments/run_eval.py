@@ -8,16 +8,26 @@ reproducible CPU baselines before vLLM investigator eval.
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from counterfeint.eval_suite import EVAL_SEEDS, AggregatedMetrics, EpisodeMetrics
-from counterfeint.experiments.episode_bundle import run_episode_bundle
-from counterfeint.graders.auditor_pipeline import run_full_audit
-from counterfeint.graders.base_grader import grade_episode
-from counterfeint.experiments.episode_bundle import bundle_to_episode_record
-from counterfeint.scripted import ScriptedInvestigator
+try:
+    from ..eval_suite import EVAL_SEEDS, AggregatedMetrics, EpisodeMetrics
+    from ..graders.auditor_pipeline import run_full_audit
+    from ..graders.base_grader import grade_episode
+    from ..scripted import ScriptedInvestigator
+    from .episode_bundle import bundle_to_episode_record, run_episode_bundle
+except ImportError:
+    _ROOT = Path(__file__).resolve().parent.parent
+    if str(_ROOT) not in sys.path:
+        sys.path.insert(0, str(_ROOT))
+    from eval_suite import EVAL_SEEDS, AggregatedMetrics, EpisodeMetrics
+    from experiments.episode_bundle import bundle_to_episode_record, run_episode_bundle
+    from graders.auditor_pipeline import run_full_audit
+    from graders.base_grader import grade_episode
+    from scripted import ScriptedInvestigator
 
 
 PolicyFactory = Callable[[], Any]
