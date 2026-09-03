@@ -99,6 +99,23 @@ _FRAUD_ADS = [
 ]
 
 
+def _overt_fraud_allowed(observation: Dict[str, Any]) -> bool:
+    allowed: List[str] = observation.get("allowed_categories") or []
+    if not allowed:
+        return True
+    overt = set(_FRAUD_CATEGORIES) | {
+        "miracle_cure", "clone_brand", "counterfeit_goods", "advance_fee",
+        "network_crypto", "network_ecommerce", "network_fintech", "network_health",
+    }
+    return bool(set(allowed) & overt)
+
+
+def _pick_surface_ad(rng: random.Random, observation: Dict[str, Any]):
+    if _overt_fraud_allowed(observation):
+        return rng.choice(_FRAUD_ADS)
+    return rng.choice(_CAMOUFLAGE_ADS)
+
+
 def _truncate(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[: limit - 3] + "..."
 
@@ -249,7 +266,7 @@ class ReactiveFraudster(PolicyBase):
                 f"{targets_emphasized or 'no signal'}."
             )
         else:
-            ad_copy, blurb, cat, targeting = self._rng.choice(_FRAUD_ADS)
+            ad_copy, blurb, cat, targeting = _pick_surface_ad(self._rng, observation)
             rationale = (
                 "ReactiveFraudster: Investigator hasn't rejected me yet; "
                 "testing a borderline/fraud template."

@@ -57,12 +57,19 @@ MODEL_SPECS: Dict[str, Dict[str, Any]] = {
 }
 
 MODE_PRESETS: Dict[str, Dict[str, Any]] = {
-    # Fast plumbing validation: two complete Task-1 training trajectories plus
-    # one short held-out episode before and after. Proper remains long-horizon.
+    # Short learning validation: one Task-2 and one Task-3 GRPO group, plus
+    # distinct held-out seeds before and after. Proper remains substantially
+    # larger while smoke can demonstrate non-zero reward variance/gradients.
     "smoke": {
-        "train_seeds": {"task_1": [11]},
+        "train_seeds": {
+            "task_2": [21],
+            "task_3": [31],
+        },
         "group_size": 2,
-        "eval_seeds": {"task_1": [1001]},
+        "eval_seeds": {
+            "task_2": [2001],
+            "task_3": [3001],
+        },
         "update_epochs": 1,
     },
     # 20 complete training trajectories: one medium-horizon warm-up group and

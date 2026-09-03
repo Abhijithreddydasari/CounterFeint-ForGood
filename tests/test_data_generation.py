@@ -160,3 +160,39 @@ class TestDecoysAndRealism:
                 found_whois = True
                 break
         assert found_whois, "At least one landing page should mention WHOIS privacy"
+
+
+class TestStealthAndTask4:
+    def test_task1_still_exposes_surface_tells(self):
+        ep = generate_episode(seed=42, task_id="task_1")
+        assert ep.task_config.stealth_level == 0
+        landing = "\n".join(inv["landing_page"] for inv in ep.investigation_data.values())
+        assert "Similarity to known scam templates:" in landing
+
+    def test_task3_landing_pages_are_stealth(self):
+        ep = generate_episode(seed=42, task_id="task_3")
+        for ad in ep.ads:
+            if ad.ground_truth_label != "fraud":
+                continue
+            text = ep.investigation_data[ad.ad_id]["landing_page"]
+            assert ".xyz" not in text
+            assert "NO SSL" not in text
+            assert "elevated fraud correlation" not in ep.investigation_data[ad.ad_id]["payment_method"]
+            assert ad.category in (
+                "ecommerce", "saas", "local_service", "education", "fitness"
+            )
+
+    def test_task4_chain_rings_payment_only(self):
+        ep = generate_episode(seed=42, task_id="task_4")
+        assert len(ep.ads) == 24
+        assert len(ep.fraud_rings) >= 1
+        for ring in ep.fraud_rings:
+            assert ring.topology == "chain"
+            assert list(ring.shared_signals.keys()) == ["payment_method"]
+        cats = {a.category for a in ep.ads}
+        assert "fake_giveaway" not in cats
+        assert "network_crypto" not in cats
+
+    def test_task4_queue_size_in_config_loop(self):
+        ep = generate_episode(seed=7, task_id="task_4")
+        assert len(ep.ads) == 24

@@ -183,8 +183,13 @@ def run_episode_bundle(
 
     aud_obs = env.build_auditor_observation()
     record_payload = dict(aud_obs.full_episode_record or {})
-    record_payload["action_budget"] = getattr(env.state, "action_budget", 0)
-    record_payload["total_steps"] = step_idx
+    # EpisodeRecord expects investigator actions and the configured task
+    # budget.  ``step_idx`` includes Fraudster turns, so it is not suitable
+    # for the grader's investigation-cost and efficiency terms.
+    record_payload["action_budget"] = int(
+        env.episode.task_config.action_budget if env.episode else 0
+    )
+    record_payload["total_steps"] = len(aud_obs.investigator_actions or [])
 
     fraudster_ad_ids = list(getattr(env, "_proposal_slot_to_ad_id", {}).values())
 

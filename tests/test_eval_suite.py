@@ -73,6 +73,7 @@ class TestEvalSeeds:
         "task_2": 10,
         "task_3": 10,
         "task_3_unseen": 5,
+        "task_4": 5,
     }
 
     def test_expected_tasks_with_expected_seed_counts(self) -> None:

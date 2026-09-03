@@ -1,0 +1,42 @@
+[
+  {
+    "loss": 1.1175870895385742e-08,
+    "grad_norm": 0.6790865659713745,
+    "updated_turns": 96.0,
+    "task_id": "task_2",
+    "seed": 21,
+    "group_number": 1
+  },
+  {
+    "loss": -0.00045218353625386953,
+    "grad_norm": 0.35220131278038025,
+    "updated_turns": 140.0,
+    "task_id": "task_3",
+    "seed": 31,
+    "group_number": 2
+  },
+  {
+    "loss": 0.0009629256092011929,
+    "grad_norm": 0.45599693059921265,
+    "updated_turns": 138.0,
+    "task_id": "task_3",
+    "seed": 32,
+    "group_number": 3
+  },
+  {
+    "loss": -9.540468454360962e-06,
+    "grad_norm": 0.4059777855873108,
+    "updated_turns": 140.0,
+    "task_id": "task_3",
+    "seed": 33,
+    "group_number": 4
+  },
+  {
+    "loss": 0.0007452871650457382,
+    "grad_norm": 0.4349386692047119,
+    "updated_turns": 138.0,
+    "task_id": "task_3",
+    "seed": 34,
+    "group_number": 5
+  }
+]

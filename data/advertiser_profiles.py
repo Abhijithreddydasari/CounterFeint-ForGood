@@ -88,11 +88,23 @@ def generate_advertiser_profile(
     *,
     payment_method_id: str | None = None,
     ring_created_date: str | None = None,
+    stealth: bool = False,
 ) -> AdvertiserProfile:
     """Generate a synthetic advertiser profile for a single ad."""
     from datetime import date, timedelta
 
-    if is_fraud:
+    if is_fraud and stealth:
+        account_name = rng.choice(_SCAM_NAMES + _LEGIT_NAMES[:8])
+        account_age = rng.randint(120, 900)
+        total_spend = round(rng.uniform(800, 40000), 2)
+        violations = rng.choices([0, 1], weights=[85, 15])[0]
+        bans = 0
+        ad_volume = rng.randint(2, 18)
+        approval_rate = round(rng.uniform(0.82, 0.97), 2)
+        country = rng.choice(_COUNTRIES_LEGIT + _COUNTRIES_MIXED[:3])
+        verified = rng.random() < 0.55
+        pmt_type = rng.choice(["credit_card", "corporate_card", "bank_account", "prepaid_card"])
+    elif is_fraud:
         account_name = rng.choice(_SCAM_NAMES)
         account_age = rng.randint(1, 90)
         total_spend = round(rng.uniform(0, 500), 2)

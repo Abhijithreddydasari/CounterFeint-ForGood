@@ -702,7 +702,9 @@ class InvestigatorEnvironment(
                 if profile:
                     meta_lines.append(f"Advertiser country: {profile.country}")
                     meta_lines.append(f"Account age: {profile.account_age_days} days")
-                    if profile.account_age_days < 30:
+                    if profile.account_age_days < 30 and getattr(
+                        self._episode.task_config, "stealth_level", 0
+                    ) < 2:
                         meta_lines.append("Flag: New account (< 30 days)")
                 context_meta = "\n".join(meta_lines)
 
@@ -935,6 +937,23 @@ class InvestigatorEnvironment(
     def verdicts(self) -> Dict[str, Dict[str, Any]]:
         """Read-only snapshot of verdicts recorded so far (Referee/auditor)."""
         return dict(self._verdicts)
+
+    def auto_approve_pending(self) -> int:
+        """Materialize the benchmark's end-of-episode policy for pending ads."""
+        if self._episode is None:
+            return 0
+        added = 0
+        for ad in self._episode.ads:
+            if ad.ad_id in self._verdicts:
+                continue
+            self._verdicts[ad.ad_id] = {
+                "verdict": "approve",
+                "confidence": 0.0,
+                "ground_truth": ad.ground_truth_label,
+                "auto_approved": True,
+            }
+            added += 1
+        return added
 
     @property
     def investigations(self) -> Dict[str, List[str]]:

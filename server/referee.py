@@ -298,6 +298,9 @@ class RefereeEnvironment(Environment[Action, Observation, RefereeState]):
             phase=self._phase,
             round_number=self._round_number,
             max_rounds=self._max_rounds,
+            action_budget=(
+                self._episode.task_config.action_budget if self._episode else 0
+            ),
             proposals_used=self._proposals_used,
             max_proposals=self._max_proposals,
             actions_this_turn=self._actions_this_turn,
@@ -740,6 +743,10 @@ class RefereeEnvironment(Environment[Action, Observation, RefereeState]):
         if self._episode is None:
             return
 
+        # The benchmark policy treats unresolved ads as automatic approvals.
+        # Materialize these verdicts before grading so leakage and coverage do
+        # not silently omit pending ads in the multi-agent path.
+        self._investigator.auto_approve_pending()
         record = self._build_episode_record()
         self._grader_score = grade_episode(record)
 

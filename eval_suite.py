@@ -93,6 +93,7 @@ EVAL_SEEDS: Dict[str, List[int]] = {
     "task_2": list(range(2001, 2011)),       # 2001..2010
     "task_3": list(range(3001, 3011)),       # 3001..3010
     "task_3_unseen": list(range(4001, 4006)),  # 4001..4005 — held-out budget regime
+    "task_4": list(range(5001, 5006)),       # 5001..5005 — camouflaged chain rings
 }
 """Held-out seeds — 10 per training-tier task, plus 5 generalisation seeds
 on ``task_3_unseen``.  All seeds are deliberately disjoint from the training
