@@ -25,3 +25,21 @@ experiments/outputs/corruption/
 experiments/outputs/ablation/
 experiments/outputs/bakeoff/
 experiments/outputs/_smoke/
+
+# Scratch and generated submission packs
+temp.txt
+tmp/
+_pack_code_submission.py
+counterfeint_code_submission/
+counterfeint_code_submission.zip
+papers/trustworthy_ai/*.zip
+papers/trustworthy_ai/SUBMISSION_NOTES.md
+
+# LoRA adapters live on the training volume / local disk, not git
+*.safetensors
+**/lora_adapter/
+**/trajectory_groups.json
+
+# Modal job IDs, not results
+**/last_calls.json
+**/last_call.json

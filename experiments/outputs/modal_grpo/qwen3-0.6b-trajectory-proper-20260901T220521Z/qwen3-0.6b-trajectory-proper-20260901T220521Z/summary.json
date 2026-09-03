@@ -1,0 +1,74 @@
+{
+  "mode": "proper",
+  "base_model": "Qwen/Qwen3-0.6B",
+  "model_key": "0.6b",
+  "gpu_requested": "L4",
+  "algorithm": "trajectory_group_relative_policy_optimisation",
+  "reward_mode": "terminal_environment_reward",
+  "frozen_fraudster": "ReactiveFraudster",
+  "long_horizon": true,
+  "group_size": 4,
+  "n_groups": 5,
+  "n_training_trajectories": 20,
+  "n_training_turns": 652,
+  "n_fraudster_proposals": 113,
+  "train_seconds": 2892.2,
+  "finished_utc": "2026-09-01T23:20:22.588077+00:00",
+  "before": {
+    "grader_mean": 0.507469235899203,
+    "leak_rate": 0.2523364485981308,
+    "track_a_mean": 0.0,
+    "fallback_total": 9
+  },
+  "after": {
+    "grader_mean": 0.45136597713931315,
+    "leak_rate": 0.3018867924528302,
+    "track_a_mean": 0.05925000000000001,
+    "fallback_total": 12
+  },
+  "delta_grader": -0.05610325875988986,
+  "delta_leak_rate": 0.049550343854699364,
+  "updates": [
+    {
+      "loss": 1.1175870895385742e-08,
+      "grad_norm": 0.6790865659713745,
+      "updated_turns": 96.0,
+      "task_id": "task_2",
+      "seed": 21,
+      "group_number": 1
+    },
+    {
+      "loss": -0.00045218353625386953,
+      "grad_norm": 0.35220131278038025,
+      "updated_turns": 140.0,
+      "task_id": "task_3",
+      "seed": 31,
+      "group_number": 2
+    },
+    {
+      "loss": 0.0009629256092011929,
+      "grad_norm": 0.45599693059921265,
+      "updated_turns": 138.0,
+      "task_id": "task_3",
+      "seed": 32,
+      "group_number": 3
+    },
+    {
+      "loss": -9.540468454360962e-06,
+      "grad_norm": 0.4059777855873108,
+      "updated_turns": 140.0,
+      "task_id": "task_3",
+      "seed": 33,
+      "group_number": 4
+    },
+    {
+      "loss": 0.0007452871650457382,
+      "grad_norm": 0.4349386692047119,
+      "updated_turns": 138.0,
+      "task_id": "task_3",
+      "seed": 34,
+      "group_number": 5
+    }
+  ],
+  "output_dir": "/vol/runs/qwen3-0.6b-trajectory-proper-20260901T220521Z"
+}

@@ -17,6 +17,7 @@ GRADERS = {
     "task_2": Task2Grader(),
     "task_3": _task3_grader,
     "task_3_unseen": _task3_grader,
+    "task_4": _task3_grader,
 }
 
 __all__ = ["grade_episode", "Task1Grader", "Task2Grader", "Task3Grader", "GRADERS"]

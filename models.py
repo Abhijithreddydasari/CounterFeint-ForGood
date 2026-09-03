@@ -496,6 +496,12 @@ class RefereeState(State):
     proposals_used: int = Field(default=0, ge=0)
     max_proposals: int = Field(default=5, ge=0)
 
+    action_budget: int = Field(
+        default=0,
+        ge=0,
+        description="Investigator action budget for the loaded task",
+    )
+
     actions_this_turn: int = Field(default=0, ge=0)
     max_actions_per_turn: int = Field(default=3, ge=1)
 

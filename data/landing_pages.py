@@ -60,12 +60,35 @@ def generate_landing_page(
     *,
     domain_override: str | None = None,
     registrar_override: str | None = None,
+    stealth: bool = False,
 ) -> LandingPageData:
-    """Generate simulated landing page investigation data."""
+    """Generate simulated landing page investigation data.
+
+    ``stealth=True`` (task_3 / task_4): fraud pages look like ordinary
+    businesses. No ``.xyz``, no "similarity 87%", no "NO SSL". The tell
+    is buried and incomplete — investigator must cross-check payment /
+    targeting, not read a label off the landing page.
+    """
 
     base_word = rng.choice(["deal", "offer", "shop", "store", "buy", "get", "best", "top", "pro", "elite"])
 
-    if is_fraud:
+    if is_fraud and stealth:
+        brand = rng.choice(
+            ["northpeak", "clearharbor", "fieldnote", "lumenpath", "riveroak", "stackline", "brightmill"]
+        )
+        suffix = rng.choice(_LEGIT_DOMAINS_SUFFIXES)
+        domain = domain_override or f"{brand}{rng.randint(10, 99)}{suffix}"
+        domain_age = rng.randint(200, 1800)
+        ssl_valid = rng.random() < 0.88
+        registrar = registrar_override or rng.choice(_LEGIT_REGISTRARS + _SUSPICIOUS_REGISTRARS[:2])
+        similarity = round(rng.uniform(0.04, 0.22), 2)
+        redirect_chain = []
+        if rng.random() < 0.25:
+            redirect_chain = [domain, f"www.{domain}"]
+        suspicious = _get_stealth_suspicious_elements(rng)
+        claims = _get_legit_claims(rng)
+        content = _get_stealth_fraud_content_summary(rng, fraud_type)
+    elif is_fraud:
         suffix = rng.choice(_SCAM_DOMAINS_SUFFIXES)
         domain = domain_override or f"{base_word}{rng.randint(10, 9999)}{suffix}"
         domain_age = rng.randint(1, 60)
@@ -175,6 +198,31 @@ def _get_legit_claims(rng: random.Random) -> List[str]:
     ]
     rng.shuffle(options)
     return options[: rng.randint(2, 4)]
+
+
+def _get_stealth_suspicious_elements(rng: random.Random) -> List[str]:
+    """Ambiguous findings. None of these alone justify a reject."""
+    pool = [
+        "Checkout posts to a third-party processor on a different /24",
+        "About page last updated 11 days ago; rest of site dated 2024",
+        "Support inbox is a catch-all at a freemail domain",
+        "Two product SKUs reuse the same manufacturer photo EXIF",
+        "Return policy exists but the RMA form 302s to a URL shortener",
+        "CDN cert is valid; origin cert expires in 19 days",
+    ]
+    rng.shuffle(pool)
+    n = rng.randint(0, 2)
+    return pool[:n]
+
+
+def _get_stealth_fraud_content_summary(rng: random.Random, fraud_type: str) -> str:
+    options = [
+        "Standard Shopify-style catalog, about page, and shipping FAQ. Company address is a virtual office suite.",
+        "SaaS marketing site with pricing tiers and a demo form. Footer legal entity does not match the WHOIS registrant.",
+        "Service-business site with team photos and a booking widget. Photos reverse-search to a stock library.",
+        "Well-structured storefront. Payment processor MID is shared with two unrelated verticals in the same week.",
+    ]
+    return rng.choice(options)
 
 
 def _get_legit_content_summary(rng: random.Random) -> str:

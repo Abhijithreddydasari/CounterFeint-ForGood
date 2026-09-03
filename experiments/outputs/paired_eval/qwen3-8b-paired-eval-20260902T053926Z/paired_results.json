@@ -1,0 +1,984 @@
+{
+  "model_key": "8b",
+  "base_model": "Qwen/Qwen3-8B",
+  "adapter_path": "/vol/runs/qwen3-8b-trajectory-proper-20260901T220514Z/lora_adapter",
+  "decoding": {
+    "strategy": "greedy",
+    "do_sample": false,
+    "max_new_tokens": 128,
+    "enable_thinking": false
+  },
+  "seeds": {
+    "task_2": [
+      5101,
+      5102,
+      5103,
+      5104,
+      5105,
+      5106,
+      5107,
+      5108
+    ],
+    "task_3": [
+      6101,
+      6102,
+      6103,
+      6104,
+      6105,
+      6106,
+      6107,
+      6108
+    ],
+    "task_3_unseen": [
+      7101,
+      7102,
+      7103,
+      7104,
+      7105,
+      7106,
+      7107,
+      7108
+    ]
+  },
+  "finished_utc": "2026-09-02T06:46:30.391670+00:00",
+  "n_pairs": 24,
+  "deterministic_decoding": true,
+  "base": {
+    "n_episodes": 24,
+    "grader_mean": 0.7010725504951204,
+    "leak_rate": 0.09239130434782608,
+    "track_a_mean": 0.0,
+    "fallback_rate": 0.0,
+    "fallback_total": 0,
+    "call_total": 678
+  },
+  "trained": {
+    "n_episodes": 24,
+    "grader_mean": 0.699853519727182,
+    "leak_rate": 0.09239130434782608,
+    "track_a_mean": 0.0,
+    "fallback_rate": 0.0,
+    "fallback_total": 0,
+    "call_total": 678
+  },
+  "paired_deltas": {
+    "grader_delta": {
+      "point": -0.00121903076793832,
+      "ci95": {
+        "lo": -0.0036686843438437596,
+        "hi": 1.6348040504668426e-05
+      },
+      "excludes_zero": false
+    },
+    "leak_rate_delta": {
+      "point": 0.0,
+      "ci95": {
+        "lo": 0.0,
+        "hi": 0.0
+      },
+      "excludes_zero": false
+    },
+    "track_a_delta": {
+      "point": 0.0,
+      "ci95": {
+        "lo": 0.0,
+        "hi": 0.0
+      },
+      "excludes_zero": false
+    },
+    "fallback_rate_delta": {
+      "point": 0.0,
+      "ci95": {
+        "lo": 0.0,
+        "hi": 0.0
+      },
+      "excludes_zero": false
+    }
+  },
+  "by_task": {
+    "task_2": {
+      "base": {
+        "n_episodes": 8,
+        "grader_mean": 0.803086346908969,
+        "leak_rate": 0.0,
+        "track_a_mean": 0.0,
+        "fallback_rate": 0.0,
+        "fallback_total": 0,
+        "call_total": 192
+      },
+      "trained": {
+        "n_episodes": 8,
+        "grader_mean": 0.7994290146105132,
+        "leak_rate": 0.0,
+        "track_a_mean": 0.0,
+        "fallback_rate": 0.0,
+        "fallback_total": 0,
+        "call_total": 192
+      },
+      "paired_deltas": {
+        "grader_delta": {
+          "point": -0.003657332298455704,
+          "ci95": {
+            "lo": -0.010989130614508166,
+            "hi": 1.713371914105477e-05
+          },
+          "excludes_zero": false
+        },
+        "leak_rate_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        },
+        "track_a_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        },
+        "fallback_rate_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        }
+      }
+    },
+    "task_3": {
+      "base": {
+        "n_episodes": 8,
+        "grader_mean": 0.6884251567448852,
+        "leak_rate": 0.0,
+        "track_a_mean": 0.0,
+        "fallback_rate": 0.0,
+        "fallback_total": 0,
+        "call_total": 246
+      },
+      "trained": {
+        "n_episodes": 8,
+        "grader_mean": 0.6884261390517087,
+        "leak_rate": 0.0,
+        "track_a_mean": 0.0,
+        "fallback_rate": 0.0,
+        "fallback_total": 0,
+        "call_total": 246
+      },
+      "paired_deltas": {
+        "grader_delta": {
+          "point": 9.823068233549836e-07,
+          "ci95": {
+            "lo": -5.6494621685360125e-06,
+            "hi": 8.596382638600963e-06
+          },
+          "excludes_zero": false
+        },
+        "leak_rate_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        },
+        "track_a_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        },
+        "fallback_rate_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        }
+      }
+    },
+    "task_3_unseen": {
+      "base": {
+        "n_episodes": 8,
+        "grader_mean": 0.6117061478315069,
+        "leak_rate": 0.2236842105263158,
+        "track_a_mean": 0.0,
+        "fallback_rate": 0.0,
+        "fallback_total": 0,
+        "call_total": 240
+      },
+      "trained": {
+        "n_episodes": 8,
+        "grader_mean": 0.6117054055193243,
+        "leak_rate": 0.2236842105263158,
+        "track_a_mean": 0.0,
+        "fallback_rate": 0.0,
+        "fallback_total": 0,
+        "call_total": 240
+      },
+      "paired_deltas": {
+        "grader_delta": {
+          "point": -7.423121826111156e-07,
+          "ci95": {
+            "lo": -4.589901970589172e-05,
+            "hi": 4.9042988912104124e-05
+          },
+          "excludes_zero": false
+        },
+        "leak_rate_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        },
+        "track_a_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        },
+        "fallback_rate_delta": {
+          "point": 0.0,
+          "ci95": {
+            "lo": 0.0,
+            "hi": 0.0
+          },
+          "excludes_zero": false
+        }
+      }
+    }
+  },
+  "pairs": [
+    {
+      "task_id": "task_2",
+      "seed": 5101,
+      "base": {
+        "condition": "base",
+        "task_id": "task_2",
+        "seed": 5101,
+        "grader_score": 0.7328449969439934,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 10,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 5
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_2",
+        "seed": 5101,
+        "grader_score": 0.7328449969439934,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 10,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 5
+      }
+    },
+    {
+      "task_id": "task_2",
+      "seed": 5102,
+      "base": {
+        "condition": "base",
+        "task_id": "task_2",
+        "seed": 5102,
+        "grader_score": 0.7323332310194436,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 10,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 5
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_2",
+        "seed": 5102,
+        "grader_score": 0.7323789209371531,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 10,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 5
+      }
+    },
+    {
+      "task_id": "task_2",
+      "seed": 5103,
+      "base": {
+        "condition": "base",
+        "task_id": "task_2",
+        "seed": 5103,
+        "grader_score": 0.8498451499431017,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 11,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 6
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_2",
+        "seed": 5103,
+        "grader_score": 0.8498451499431017,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 11,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 6
+      }
+    },
+    {
+      "task_id": "task_2",
+      "seed": 5104,
+      "base": {
+        "condition": "base",
+        "task_id": "task_2",
+        "seed": 5104,
+        "grader_score": 0.696362018908571,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 11,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 34,
+        "n_fraudster_proposals": 6
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_2",
+        "seed": 5104,
+        "grader_score": 0.6670576706032159,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 11,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 34,
+        "n_fraudster_proposals": 6
+      }
+    },
+    {
+      "task_id": "task_2",
+      "seed": 5105,
+      "base": {
+        "condition": "base",
+        "task_id": "task_2",
+        "seed": 5105,
+        "grader_score": 0.9017753374907219,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 11,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 34,
+        "n_fraudster_proposals": 6
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_2",
+        "seed": 5105,
+        "grader_score": 0.9017753374907219,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 11,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 34,
+        "n_fraudster_proposals": 6
+      }
+    },
+    {
+      "task_id": "task_2",
+      "seed": 5106,
+      "base": {
+        "condition": "base",
+        "task_id": "task_2",
+        "seed": 5106,
+        "grader_score": 0.7299502098644731,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 10,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 5
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_2",
+        "seed": 5106,
+        "grader_score": 0.7299502098644731,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 10,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 5
+      }
+    },
+    {
+      "task_id": "task_2",
+      "seed": 5107,
+      "base": {
+        "condition": "base",
+        "task_id": "task_2",
+        "seed": 5107,
+        "grader_score": 0.8886834725180974,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 11,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 35,
+        "n_fraudster_proposals": 6
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_2",
+        "seed": 5107,
+        "grader_score": 0.8886834725180974,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 11,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 35,
+        "n_fraudster_proposals": 6
+      }
+    },
+    {
+      "task_id": "task_2",
+      "seed": 5108,
+      "base": {
+        "condition": "base",
+        "task_id": "task_2",
+        "seed": 5108,
+        "grader_score": 0.8928963585833493,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 10,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 5
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_2",
+        "seed": 5108,
+        "grader_score": 0.8928963585833493,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 10,
+        "fallback_count": 0,
+        "call_count": 24,
+        "steps": 36,
+        "n_fraudster_proposals": 5
+      }
+    },
+    {
+      "task_id": "task_3",
+      "seed": 6101,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3",
+        "seed": 6101,
+        "grader_score": 0.726616844377586,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 16,
+        "fallback_count": 0,
+        "call_count": 34,
+        "steps": 49,
+        "n_fraudster_proposals": 6
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3",
+        "seed": 6101,
+        "grader_score": 0.726616844377586,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 16,
+        "fallback_count": 0,
+        "call_count": 34,
+        "steps": 49,
+        "n_fraudster_proposals": 6
+      }
+    },
+    {
+      "task_id": "task_3",
+      "seed": 6102,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3",
+        "seed": 6102,
+        "grader_score": 0.6803227805999077,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 34,
+        "steps": 48,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3",
+        "seed": 6102,
+        "grader_score": 0.6803227805999077,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 34,
+        "steps": 48,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3",
+      "seed": 6103,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3",
+        "seed": 6103,
+        "grader_score": 0.69072039747128,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 28,
+        "steps": 39,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3",
+        "seed": 6103,
+        "grader_score": 0.69072039747128,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 28,
+        "steps": 39,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3",
+      "seed": 6104,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3",
+        "seed": 6104,
+        "grader_score": 0.7139388885715826,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 15,
+        "fallback_count": 0,
+        "call_count": 33,
+        "steps": 48,
+        "n_fraudster_proposals": 5
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3",
+        "seed": 6104,
+        "grader_score": 0.7139388885715826,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 15,
+        "fallback_count": 0,
+        "call_count": 33,
+        "steps": 48,
+        "n_fraudster_proposals": 5
+      }
+    },
+    {
+      "task_id": "task_3",
+      "seed": 6105,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3",
+        "seed": 6105,
+        "grader_score": 0.6583231637440385,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 21,
+        "steps": 31,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3",
+        "seed": 6105,
+        "grader_score": 0.6583231637440385,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 21,
+        "steps": 31,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3",
+      "seed": 6106,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3",
+        "seed": 6106,
+        "grader_score": 0.7106097776170388,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 28,
+        "steps": 39,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3",
+        "seed": 6106,
+        "grader_score": 0.7105947123845894,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 28,
+        "steps": 39,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3",
+      "seed": 6107,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3",
+        "seed": 6107,
+        "grader_score": 0.6226646491252789,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 34,
+        "steps": 48,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3",
+        "seed": 6107,
+        "grader_score": 0.6226875728123151,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 17,
+        "fallback_count": 0,
+        "call_count": 34,
+        "steps": 48,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3",
+      "seed": 6108,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3",
+        "seed": 6108,
+        "grader_score": 0.7042047524523698,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 16,
+        "fallback_count": 0,
+        "call_count": 34,
+        "steps": 49,
+        "n_fraudster_proposals": 6
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3",
+        "seed": 6108,
+        "grader_score": 0.7042047524523698,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 0,
+        "n_ground_truth_fraud": 16,
+        "fallback_count": 0,
+        "call_count": 34,
+        "steps": 49,
+        "n_fraudster_proposals": 6
+      }
+    },
+    {
+      "task_id": "task_3_unseen",
+      "seed": 7101,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3_unseen",
+        "seed": 7101,
+        "grader_score": 0.5950375800313578,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 5,
+        "n_ground_truth_fraud": 20,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 44,
+        "n_fraudster_proposals": 8
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3_unseen",
+        "seed": 7101,
+        "grader_score": 0.5950375800313578,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 5,
+        "n_ground_truth_fraud": 20,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 44,
+        "n_fraudster_proposals": 8
+      }
+    },
+    {
+      "task_id": "task_3_unseen",
+      "seed": 7102,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3_unseen",
+        "seed": 7102,
+        "grader_score": 0.6499254592591738,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 3,
+        "n_ground_truth_fraud": 18,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 6
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3_unseen",
+        "seed": 7102,
+        "grader_score": 0.6498233406382226,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 3,
+        "n_ground_truth_fraud": 18,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 6
+      }
+    },
+    {
+      "task_id": "task_3_unseen",
+      "seed": 7103,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3_unseen",
+        "seed": 7103,
+        "grader_score": 0.5658510794899773,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 6,
+        "n_ground_truth_fraud": 19,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3_unseen",
+        "seed": 7103,
+        "grader_score": 0.566009019946367,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 6,
+        "n_ground_truth_fraud": 19,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3_unseen",
+      "seed": 7104,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3_unseen",
+        "seed": 7104,
+        "grader_score": 0.6299243152187857,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 4,
+        "n_ground_truth_fraud": 19,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3_unseen",
+        "seed": 7104,
+        "grader_score": 0.6299440323437586,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 4,
+        "n_ground_truth_fraud": 19,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3_unseen",
+      "seed": 7105,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3_unseen",
+        "seed": 7105,
+        "grader_score": 0.612144403938393,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 4,
+        "n_ground_truth_fraud": 19,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3_unseen",
+        "seed": 7105,
+        "grader_score": 0.612144403938393,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 4,
+        "n_ground_truth_fraud": 19,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3_unseen",
+      "seed": 7106,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3_unseen",
+        "seed": 7106,
+        "grader_score": 0.6519639520610223,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 3,
+        "n_ground_truth_fraud": 18,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 6
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3_unseen",
+        "seed": 7106,
+        "grader_score": 0.65188247460315,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 3,
+        "n_ground_truth_fraud": 18,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 6
+      }
+    },
+    {
+      "task_id": "task_3_unseen",
+      "seed": 7107,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3_unseen",
+        "seed": 7107,
+        "grader_score": 0.5967891755168941,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 4,
+        "n_ground_truth_fraud": 19,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 7
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3_unseen",
+        "seed": 7107,
+        "grader_score": 0.5967891755168941,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 4,
+        "n_ground_truth_fraud": 19,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 7
+      }
+    },
+    {
+      "task_id": "task_3_unseen",
+      "seed": 7108,
+      "base": {
+        "condition": "base",
+        "task_id": "task_3_unseen",
+        "seed": 7108,
+        "grader_score": 0.5920132171364514,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 5,
+        "n_ground_truth_fraud": 20,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 8
+      },
+      "trained": {
+        "condition": "trained",
+        "task_id": "task_3_unseen",
+        "seed": 7108,
+        "grader_score": 0.5920132171364514,
+        "track_a_score": 0.0,
+        "n_fraud_leaks": 5,
+        "n_ground_truth_fraud": 20,
+        "fallback_count": 0,
+        "call_count": 30,
+        "steps": 45,
+        "n_fraudster_proposals": 8
+      }
+    }
+  ]
+}

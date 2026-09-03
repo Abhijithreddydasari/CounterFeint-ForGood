@@ -112,6 +112,11 @@ class HFInvestigator(LLMPolicyBase):
         # than spend tokens on chain-of-thought before the JSON.  Older
         # models (Qwen2.5 etc.) silently ignore this flag.
         self.enable_thinking = bool(enable_thinking)
+        # Exact token IDs from the latest sampled action.  Trajectory GRPO
+        # recomputes log-probabilities over these tokens after the complete
+        # environment episode has received its terminal reward.
+        self.last_prompt_token_ids: Optional[list[int]] = None
+        self.last_completion_token_ids: Optional[list[int]] = None
 
     # ------------------------------------------------------------------
     # Convenience loader
@@ -174,6 +179,8 @@ class HFInvestigator(LLMPolicyBase):
     # parent's OpenAI-HTTP path).
     # ------------------------------------------------------------------
     def _call_chat(self, messages: list) -> str:
+        self.last_prompt_token_ids = None
+        self.last_completion_token_ids = None
         template_kwargs: Dict[str, Any] = {
             "add_generation_prompt": True,
             "return_tensors": "pt",
@@ -210,6 +217,10 @@ class HFInvestigator(LLMPolicyBase):
         outputs = self.model.generate(**encoded, **gen_kwargs)
         prompt_len = encoded["input_ids"].shape[-1]
         gen_tokens = outputs[0][prompt_len:]
+        self.last_prompt_token_ids = (
+            encoded["input_ids"][0].detach().cpu().tolist()
+        )
+        self.last_completion_token_ids = gen_tokens.detach().cpu().tolist()
         return self.tokenizer.decode(gen_tokens, skip_special_tokens=True)
 
     # ------------------------------------------------------------------

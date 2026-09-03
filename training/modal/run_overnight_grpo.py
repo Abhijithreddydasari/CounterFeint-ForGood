@@ -1,27 +1,16 @@
-"""
-Overnight GRPO on Qwen3-4B-Instruct-2507 (proxy reward, frozen scripted fraudster).
+"""Overnight, full-episode GRPO for the CounterFeint Investigator.
 
-Same loop as official_hf_training.ipynb, with three changes:
-  * 4B instruct instead of 0.6B
-  * before/after eval on the 35 EVAL_SEEDS with fraud leak rate
-  * one Modal function: GPU dies when the function returns or hits timeout
+Unlike the retired proxy runner, every sample here is a complete interactive
+episode. A frozen ReactiveFraudster actively proposes/modifies ads, the
+Investigator takes many sequential tool actions, and the terminal environment
+reward is group-normalised and applied to every Investigator action token.
 
-Detach rules (read these):
-  * Overnight uses .spawn() + --detach. Do NOT use .remote() overnight —
-    closing the laptop cancels a waiting .remote() and kills the GPU job.
-  * After spawn, do NOT run this file again, do NOT `modal serve`, do NOT
-    `modal deploy`. A second launch or a live-reload replace stops the first run.
-  * Local edits after spawn do not touch the running container (image is baked).
-    They only matter if you start a new `modal run`.
+From the repository root:
 
-From repo root (pip install modal && modal setup):
+  modal run training/modal/run_overnight_grpo.py --mode smoke --model both
+  modal run --detach training/modal/run_overnight_grpo.py --mode proper --model both
 
-  modal run training/modal/run_overnight_grpo.py --mode smoke
-  modal run --detach training/modal/run_overnight_grpo.py --mode proper
-
-  modal app logs counterfeint-overnight-grpo
-  modal app stop counterfeint-overnight-grpo
-
+  modal app logs counterfeint-trajectory-grpo
   modal volume get counterfeint-forgood /runs ./experiments/outputs/modal_grpo --force
 """
 
@@ -42,39 +31,68 @@ except ImportError:
 
 def _repo_root() -> Path:
     here = Path(__file__).resolve()
-    for p in [here.parent, *here.parents]:
-        if (p / "pyproject.toml").exists() and (p / "training" / "rollout.py").exists():
-            return p
+    for parent in [here.parent, *here.parents]:
+        if (parent / "pyproject.toml").exists() and (
+            parent / "training" / "trajectory_grpo.py"
+        ).exists():
+            return parent
     return Path("/root/counterfeint")
 
 
 REPO_ROOT = _repo_root()
-
-MODE_PRESETS: Dict[str, Dict[str, Any]] = {
-    "smoke": {
-        "train_seeds": [11],
-        "task_3_seeds": [11],
-        "epochs": 1,
-        "eval_tasks": {"task_1": [1001]},
-        "max_steps": 3,
+TIMEOUT_SEC = 8 * 60 * 60
+MODEL_SPECS: Dict[str, Dict[str, Any]] = {
+    "0.6b": {
+        "base_model": "Qwen/Qwen3-0.6B",
+        "slug": "qwen3-0.6b",
+        "learning_rate": 2e-5,
+        "gpu": "L4",
     },
-    "proper": {
-        "train_seeds": list(range(11, 21)),
-        "task_3_seeds": list(range(11, 14)),
-        "epochs": 2,
-        "eval_tasks": None,  # filled with EVAL_SEEDS at runtime
-        "max_steps": None,
+    "8b": {
+        "base_model": "Qwen/Qwen3-8B",
+        "slug": "qwen3-8b",
+        "learning_rate": 1e-5,
+        "gpu": "A100-40GB",
     },
 }
 
-BASE_MODEL = "Qwen/Qwen3-4B-Instruct-2507"
-TIMEOUT_SEC = 6 * 60 * 60
+MODE_PRESETS: Dict[str, Dict[str, Any]] = {
+    # Short learning validation: one Task-2 and one Task-3 GRPO group, plus
+    # distinct held-out seeds before and after. Proper remains substantially
+    # larger while smoke can demonstrate non-zero reward variance/gradients.
+    "smoke": {
+        "train_seeds": {
+            "task_2": [21],
+            "task_3": [31],
+        },
+        "group_size": 2,
+        "eval_seeds": {
+            "task_2": [2001],
+            "task_3": [3001],
+        },
+        "update_epochs": 1,
+    },
+    # 20 complete training trajectories: one medium-horizon warm-up group and
+    # four hard long-horizon network groups. Held-out task_3_unseen is eval-only.
+    "proper": {
+        "train_seeds": {
+            "task_2": [21],
+            "task_3": [31, 32, 33, 34],
+        },
+        "group_size": 4,
+        "eval_seeds": {
+            "task_2": [2001, 2002],
+            "task_3": [3001, 3002, 3003],
+            "task_3_unseen": [4001, 4002],
+        },
+        "update_epochs": 1,
+    },
+}
 
 
 if modal is not None:
-    app = modal.App("counterfeint-overnight-grpo")
+    app = modal.App("counterfeint-trajectory-grpo")
     volume = modal.Volume.from_name("counterfeint-forgood", create_if_missing=True)
-
     image = (
         modal.Image.from_registry(
             "nvidia/cuda:12.8.1-devel-ubuntu22.04",
@@ -88,10 +106,7 @@ if modal is not None:
         .pip_install(
             "transformers>=4.51.0",
             "accelerate>=1.1.0",
-            "datasets>=3.0.0",
             "peft>=0.13.0",
-            "bitsandbytes>=0.44.0",
-            "trl>=0.12.0",
             "safetensors>=0.4.5",
             "huggingface_hub>=0.26.0",
             "openenv-core[core]>=0.2.3",
@@ -132,35 +147,35 @@ if modal is not None:
 
 
 def _leak_rate(episodes: List[Dict[str, Any]]) -> float:
-    leaks = sum(int(e["n_fraud_leaks"]) for e in episodes)
-    fraud = sum(int(e["n_ground_truth_fraud"]) for e in episodes)
+    fraud = sum(int(row["n_ground_truth_fraud"]) for row in episodes)
+    leaks = sum(int(row["n_fraud_leaks"]) for row in episodes)
     return leaks / fraud if fraud else 0.0
 
 
-def _bootstrap_ci(values: List[float], n_boot: int = 2000, alpha: float = 0.05) -> Dict[str, float]:
+def _bootstrap_ci(
+    values: List[float], n_boot: int = 2000, alpha: float = 0.05
+) -> Dict[str, float]:
     if not values:
         return {"mean": 0.0, "lo": 0.0, "hi": 0.0}
     import random
 
     rng = random.Random(7)
-    means = []
-    n = len(values)
+    means: List[float] = []
     for _ in range(n_boot):
-        sample = [values[rng.randrange(n)] for _ in range(n)]
-        means.append(sum(sample) / n)
+        sample = [values[rng.randrange(len(values))] for _ in values]
+        means.append(sum(sample) / len(sample))
     means.sort()
-    lo_i = int(alpha / 2 * n_boot)
-    hi_i = int((1 - alpha / 2) * n_boot) - 1
     return {
-        "mean": sum(values) / n,
-        "lo": means[max(0, lo_i)],
-        "hi": means[min(n_boot - 1, hi_i)],
+        "mean": sum(values) / len(values),
+        "lo": means[int(alpha / 2 * n_boot)],
+        "hi": means[int((1 - alpha / 2) * n_boot) - 1],
     }
 
 
 def _eval_investigator(
     hf_investigator: Any,
     *,
+    base_model: str,
     seeds_by_task: Dict[str, List[int]],
     tag: str,
     output_dir: Path,
@@ -174,10 +189,10 @@ def _eval_investigator(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     episodes: List[Dict[str, Any]] = []
-    n_total = sum(len(s) for s in seeds_by_task.values())
+    total = sum(len(seeds) for seeds in seeds_by_task.values())
     done = 0
 
-    def factory() -> Any:
+    def investigator_factory() -> Any:
         hf_investigator.reset()
         hf_investigator.model.eval()
         return hf_investigator
@@ -187,10 +202,10 @@ def _eval_investigator(
             bundle = run_episode_bundle(
                 task_id=task_id,
                 seed=seed,
-                investigator_factory=factory,
+                investigator_factory=investigator_factory,
             )
             record = bundle_to_episode_record(bundle)
-            grader = grade_episode(record)
+            grader = float(grade_episode(record))
             audit = run_full_audit(
                 record=record,
                 investigator_action_log=bundle.investigator_actions,
@@ -198,16 +213,14 @@ def _eval_investigator(
                 fraudster_proposal_log=bundle.fraudster_proposals,
             )
             n_fraud = sum(
-                1 for m in record.ads_metadata if m.get("ground_truth") == "fraud"
+                1 for meta in record.ads_metadata if meta.get("ground_truth") == "fraud"
             )
             leaks = sum(
                 1
-                for v in record.verdicts
-                if v.ground_truth == "fraud"
-                and (v.auto_approved or v.verdict in ("approve", "escalate"))
+                for verdict in record.verdicts
+                if verdict.ground_truth == "fraud"
+                and (verdict.auto_approved or verdict.verdict in ("approve", "escalate"))
             )
-            fallback = int(getattr(hf_investigator, "fallback_count", 0) or 0)
-            calls = int(getattr(hf_investigator, "call_count", 0) or 0)
             row = {
                 "tag": tag,
                 "task_id": task_id,
@@ -216,276 +229,288 @@ def _eval_investigator(
                 "track_a_score": audit.investigator_audit_score,
                 "n_fraud_leaks": leaks,
                 "n_ground_truth_fraud": n_fraud,
-                "fallback_count": fallback,
-                "call_count": calls,
+                "fallback_count": int(hf_investigator.fallback_count),
+                "call_count": int(hf_investigator.call_count),
                 "steps": record.total_steps,
+                "n_fraudster_proposals": sum(
+                    1
+                    for proposal in bundle.fraudster_proposals
+                    if proposal.get("action_type") == "propose_ad"
+                ),
             }
             episodes.append(row)
             done += 1
             print(
-                f"[{tag} {done}/{n_total}] {task_id} seed={seed} "
+                f"[{tag} {done}/{total}] {task_id} seed={seed} "
                 f"grader={grader:.3f} leaks={leaks}/{n_fraud} "
-                f"fallback={fallback}/{calls}",
+                f"fallback={row['fallback_count']}/{row['call_count']} "
+                f"fraudster_ads={row['n_fraudster_proposals']}",
                 flush=True,
             )
 
-    by_task: Dict[str, List[Dict[str, Any]]] = {}
-    for e in episodes:
-        by_task.setdefault(e["task_id"], []).append(e)
-    aggregates = {}
-    for task_id, rows in by_task.items():
-        n = len(rows)
-        aggregates[task_id] = {
-            "n_episodes": n,
-            "grader_score_mean": sum(r["grader_score"] for r in rows) / n,
-            "n_fraud_leaks_mean": sum(r["n_fraud_leaks"] for r in rows) / n,
-            "leak_rate": _leak_rate(rows),
-            "fallback_total": sum(r["fallback_count"] for r in rows),
-        }
-
-    per_ep_leak = [
-        (r["n_fraud_leaks"] / r["n_ground_truth_fraud"])
-        if r["n_ground_truth_fraud"]
+    per_episode_leak = [
+        row["n_fraud_leaks"] / row["n_ground_truth_fraud"]
+        if row["n_ground_truth_fraud"]
         else 0.0
-        for r in episodes
+        for row in episodes
     ]
     payload = {
         "tag": tag,
-        "model": BASE_MODEL,
+        "model": base_model,
+        "n_episodes": len(episodes),
         "leak_rate_overall": _leak_rate(episodes),
-        "leak_rate_bootstrap": _bootstrap_ci(per_ep_leak),
-        "grader_mean": sum(e["grader_score"] for e in episodes) / max(1, len(episodes)),
-        "fallback_total": sum(e["fallback_count"] for e in episodes),
-        "call_total": sum(e["call_count"] for e in episodes),
-        "aggregates": aggregates,
+        "leak_rate_bootstrap": _bootstrap_ci(per_episode_leak),
+        "grader_mean": statistics.mean(row["grader_score"] for row in episodes),
+        "track_a_mean": statistics.mean(row["track_a_score"] for row in episodes),
+        "fallback_total": sum(row["fallback_count"] for row in episodes),
+        "call_total": sum(row["call_count"] for row in episodes),
         "episodes": episodes,
     }
     (output_dir / "eval_results.json").write_text(
         json.dumps(payload, indent=2), encoding="utf-8"
     )
-    lines = [
-        f"# {tag}",
-        "",
-        f"Overall leak rate: {payload['leak_rate_overall']:.3f} "
-        f"(bootstrap mean {payload['leak_rate_bootstrap']['mean']:.3f}, "
-        f"95% CI {payload['leak_rate_bootstrap']['lo']:.3f}–"
-        f"{payload['leak_rate_bootstrap']['hi']:.3f})",
-        "",
-        "| Task | n | grader | leaks/ep | leak rate | fallback |",
-        "|------|--:|-------:|---------:|----------:|---------:|",
-    ]
-    for tid, agg in aggregates.items():
-        lines.append(
-            f"| {tid} | {agg['n_episodes']} | {agg['grader_score_mean']:.3f} | "
-            f"{agg['n_fraud_leaks_mean']:.2f} | {agg['leak_rate']:.3f} | "
-            f"{agg['fallback_total']} |"
-        )
-    (output_dir / "eval_summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"Wrote {output_dir / 'eval_summary.md'}", flush=True)
     return payload
 
 
-def _run_training(mode: str, out_root: Path) -> Dict[str, Any]:
-    import inspect
-
+def _run_training(
+    mode: str,
+    out_root: Path,
+    *,
+    model_key: str,
+) -> Dict[str, Any]:
     import torch
     from peft import LoraConfig, get_peft_model
-    from trl import GRPOConfig, GRPOTrainer
 
     from counterfeint.agents import HFInvestigator
-    from counterfeint.agents.prompts import INVESTIGATOR_SYSTEM_PROMPT
-    from counterfeint.eval_suite import EVAL_SEEDS
-    from counterfeint.scripted import HeuristicAuditor, ReactiveFraudster
-    from counterfeint.training import (
-        build_gold_lookup,
-        collect_dataset_in_process,
-        make_proxy_reward_fn,
-        samples_to_hf_dataset,
+    from counterfeint.training.trajectory_grpo import (
+        RewardMode,
+        collect_trajectory_group,
+        optimise_trajectory_group,
     )
 
     if mode not in MODE_PRESETS:
         raise ValueError(f"mode must be smoke|proper, got {mode!r}")
+    if model_key not in MODEL_SPECS:
+        raise ValueError(f"model must be 0.6b|8b, got {model_key!r}")
     preset = MODE_PRESETS[mode]
-    eval_tasks = preset["eval_tasks"] or EVAL_SEEDS
-    train_seeds_by_task = {
-        "task_1": list(preset["train_seeds"]),
-        "task_2": list(preset["train_seeds"]),
-        "task_3": list(preset["task_3_seeds"]),
-    }
-
+    model_spec = MODEL_SPECS[model_key]
+    base_model = str(model_spec["base_model"])
     out_root.mkdir(parents=True, exist_ok=True)
-    print(f"CUDA: {torch.cuda.is_available()} {torch.cuda.get_device_name(0) if torch.cuda.is_available() else ''}", flush=True)
-    print(f"mode={mode} model={BASE_MODEL}", flush=True)
+    print(
+        f"CUDA={torch.cuda.is_available()} "
+        f"device={torch.cuda.get_device_name(0) if torch.cuda.is_available() else ''}",
+        flush=True,
+    )
+    print(
+        f"mode={mode} model={base_model} reward=full_environment "
+        f"group_size={preset['group_size']}",
+        flush=True,
+    )
 
-    t_load = time.perf_counter()
+    load_started = time.perf_counter()
     hf = HFInvestigator.from_pretrained(
-        BASE_MODEL,
+        base_model,
         load_in_4bit=False,
         torch_dtype="bfloat16",
         max_new_tokens=128,
-        temperature=0.3,
+        temperature=0.7,
         do_sample=True,
         enable_thinking=False,
     )
-    lora_cfg = LoraConfig(
-        r=16,
-        lora_alpha=32,
-        lora_dropout=0.05,
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-        bias="none",
-        task_type="CAUSAL_LM",
+    hf.model = get_peft_model(
+        hf.model,
+        LoraConfig(
+            r=16,
+            lora_alpha=32,
+            lora_dropout=0.05,
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+            bias="none",
+            task_type="CAUSAL_LM",
+        ),
     )
-    hf.model = get_peft_model(hf.model, lora_cfg)
     if hasattr(hf.model, "enable_input_require_grads"):
         hf.model.enable_input_require_grads()
     hf.model.print_trainable_parameters()
-    print(f"Loaded+LoRA in {time.perf_counter() - t_load:.1f}s", flush=True)
+    print(f"Loaded model+LoRA in {time.perf_counter()-load_started:.1f}s", flush=True)
 
     probe = hf._call_chat(
         [
-            {"role": "system", "content": "You output one line of JSON only."},
-            {"role": "user", "content": 'Reply with {"ok": true}'},
+            {"role": "system", "content": "Output JSON only."},
+            {"role": "user", "content": 'Reply with {"action_type":"verdict"}'},
         ]
     )
-    print(f"Probe: {probe[:160]!r}", flush=True)
+    if not hf.last_prompt_token_ids or not hf.last_completion_token_ids:
+        raise RuntimeError("HF Investigator did not expose rollout token IDs")
+    print(
+        f"Token capture probe: prompt={len(hf.last_prompt_token_ids)} "
+        f"completion={len(hf.last_completion_token_ids)} text={probe[:100]!r}",
+        flush=True,
+    )
 
-    print("=== BEFORE eval ===", flush=True)
-    t0 = time.perf_counter()
+    print("=== HELD-OUT BEFORE ===", flush=True)
     before = _eval_investigator(
         hf,
-        seeds_by_task=eval_tasks,
-        tag="before_grpo",
+        base_model=base_model,
+        seeds_by_task=preset["eval_seeds"],
+        tag="before_trajectory_grpo",
         output_dir=out_root / "eval_before",
     )
-    print(f"BEFORE leak_rate={before['leak_rate_overall']:.3f} in {time.perf_counter()-t0:.0f}s", flush=True)
 
-    print("=== Collect rollouts ===", flush=True)
-    t0 = time.perf_counter()
-    samples = collect_dataset_in_process(
-        hf_investigator=hf,
-        seeds_by_task=train_seeds_by_task,
-        fraudster_factory=lambda: ReactiveFraudster(seed=42),
-        auditor_factory=lambda: HeuristicAuditor(),
-        max_steps=80,
-        show_trace=False,
+    optimizer = torch.optim.AdamW(
+        [parameter for parameter in hf.model.parameters() if parameter.requires_grad],
+        lr=float(model_spec["learning_rate"]),
+        weight_decay=0.01,
     )
-    print(
-        f"Collected {len(samples)} rows in {time.perf_counter()-t0:.0f}s "
-        f"fallback={hf.fallback_count}/{hf.call_count}",
-        flush=True,
-    )
-    if not samples:
-        raise RuntimeError("No training rows — every step fell back to scripted.")
+    all_trajectories: List[Any] = []
+    update_log: List[Dict[str, Any]] = []
+    train_started = time.perf_counter()
+    group_number = 0
+    n_groups = sum(len(seeds) for seeds in preset["train_seeds"].values())
 
-    clean = [
-        s
-        for s in samples
-        if (s.completion or "").strip().startswith("{") and "action_type" in (s.completion or "")
-    ]
-    print(f"Kept {len(clean)}/{len(samples)} JSON rows", flush=True)
-    samples = clean or samples
-    rewards = [s.reward for s in samples]
-    print(
-        f"Collected-row reward mean={statistics.mean(rewards):+.4f} "
-        f"std={statistics.pstdev(rewards):+.4f}",
-        flush=True,
-    )
+    for task_id, seeds in preset["train_seeds"].items():
+        for seed in seeds:
+            group_number += 1
+            print(
+                f"=== GROUP {group_number}/{n_groups}: {task_id} seed={seed} "
+                f"x{preset['group_size']} COMPLETE EPISODES ===",
+                flush=True,
+            )
 
-    gold_lookup = build_gold_lookup(samples)
-    proxy_fn = make_proxy_reward_fn(gold_lookup=gold_lookup)
-    train_dataset = samples_to_hf_dataset(samples, system_prompt=INVESTIGATOR_SYSTEM_PROMPT)
+            def investigator_factory() -> Any:
+                hf.model.eval()
+                return hf
 
-    ckpt_dir = out_root / "trl_checkpoints"
-    grpo_kwargs: Dict[str, Any] = dict(
-        output_dir=str(ckpt_dir),
-        learning_rate=3e-5,
-        num_generations=4,
-        beta=0.01,
-        per_device_train_batch_size=1,
-        gradient_accumulation_steps=4,
-        max_completion_length=256,
-        num_train_epochs=int(preset["epochs"]),
-        save_steps=50,
-        logging_steps=1,
-        gradient_checkpointing=True,
-        gradient_checkpointing_kwargs={"use_reentrant": False},
-        report_to="none",
-        seed=7,
-        remove_unused_columns=False,
-    )
-    if preset["max_steps"] is not None:
-        grpo_kwargs["max_steps"] = int(preset["max_steps"])
-    params = set(inspect.signature(GRPOConfig.__init__).parameters)
-    if "max_prompt_length" in params:
-        grpo_kwargs["max_prompt_length"] = 2048
-    else:
-        hf.tokenizer.model_max_length = 2048 + 256
-    if "temperature" in params:
-        grpo_kwargs["temperature"] = 0.9
-    if "bf16" in params:
-        grpo_kwargs["bf16"] = True
+            group = collect_trajectory_group(
+                task_id=task_id,
+                seed=seed,
+                group_size=int(preset["group_size"]),
+                investigator_factory=investigator_factory,
+                reward_mode=RewardMode.ENVIRONMENT,
+                fallback_penalty=1.0,
+                max_steps=200,
+            )
+            if any(record.n_fraudster_proposals == 0 for record in group):
+                raise RuntimeError("Frozen Fraudster failed to populate ads")
+            if any(not record.turns for record in group):
+                raise RuntimeError("A trajectory contained no trainable Investigator turns")
 
-    trainer = GRPOTrainer(
-        model=hf.model,
-        args=GRPOConfig(**grpo_kwargs),
-        train_dataset=train_dataset,
-        reward_funcs=[proxy_fn],
-        processing_class=hf.tokenizer,
-    )
-    if hasattr(trainer, "generation_config"):
-        trainer.generation_config.temperature = 0.9
-        trainer.generation_config.do_sample = True
+            for record in group:
+                print(
+                    f"  rollout={record.trajectory_idx} turns={len(record.turns)} "
+                    f"fraudster_ads={record.n_fraudster_proposals} "
+                    f"grader={record.grader_score:.3f} "
+                    f"reward={record.investigator_reward:+.3f} "
+                    f"adv={record.advantage:+.3f} "
+                    f"fallback={record.fallback_count}/{record.call_count}",
+                    flush=True,
+                )
 
-    print("=== GRPO train ===", flush=True)
-    t0 = time.perf_counter()
-    train_result = trainer.train()
-    train_sec = time.perf_counter() - t0
-    print(f"train() finished in {train_sec:.0f}s metrics={getattr(train_result, 'metrics', {})}", flush=True)
+            update = optimise_trajectory_group(
+                model=hf.model,
+                optimizer=optimizer,
+                records=group,
+                clip_epsilon=0.2,
+                max_prompt_tokens=2048,
+                max_grad_norm=1.0,
+                update_epochs=int(preset["update_epochs"]),
+            )
+            update.update(task_id=task_id, seed=seed, group_number=group_number)
+            update_log.append(update)
+            all_trajectories.extend(group)
+            print(f"  update={json.dumps(update)}", flush=True)
 
-    adapter_dir = out_root / "lora_adapter"
-    hf.model.save_pretrained(str(adapter_dir))
-    hf.tokenizer.save_pretrained(str(adapter_dir))
-    log_path = out_root / "log_history.json"
-    log_path.write_text(json.dumps(trainer.state.log_history, indent=2), encoding="utf-8")
+            hf.model.save_pretrained(str(out_root / "lora_adapter"))
+            hf.tokenizer.save_pretrained(str(out_root / "lora_adapter"))
+            (out_root / "trajectory_groups.json").write_text(
+                json.dumps(
+                    [record.to_dict() for record in all_trajectories], indent=2
+                ),
+                encoding="utf-8",
+            )
+            (out_root / "update_log.json").write_text(
+                json.dumps(update_log, indent=2), encoding="utf-8"
+            )
+            if modal is not None:
+                volume.commit()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
-    print("=== AFTER eval ===", flush=True)
-    t0 = time.perf_counter()
+    train_seconds = time.perf_counter() - train_started
+    print("=== HELD-OUT AFTER ===", flush=True)
     after = _eval_investigator(
         hf,
-        seeds_by_task=eval_tasks,
-        tag="after_grpo",
+        base_model=base_model,
+        seeds_by_task=preset["eval_seeds"],
+        tag="after_trajectory_grpo",
         output_dir=out_root / "eval_after",
     )
-    print(f"AFTER leak_rate={after['leak_rate_overall']:.3f} in {time.perf_counter()-t0:.0f}s", flush=True)
-
     summary = {
         "mode": mode,
-        "base_model": BASE_MODEL,
+        "base_model": base_model,
+        "model_key": model_key,
+        "gpu_requested": model_spec["gpu"],
+        "algorithm": "trajectory_group_relative_policy_optimisation",
+        "reward_mode": "terminal_environment_reward",
+        "frozen_fraudster": "ReactiveFraudster",
+        "long_horizon": True,
+        "group_size": preset["group_size"],
+        "n_groups": n_groups,
+        "n_training_trajectories": len(all_trajectories),
+        "n_training_turns": sum(len(record.turns) for record in all_trajectories),
+        "n_fraudster_proposals": sum(
+            record.n_fraudster_proposals for record in all_trajectories
+        ),
+        "train_seconds": round(train_seconds, 1),
         "finished_utc": datetime.now(timezone.utc).isoformat(),
-        "n_train_rows": len(samples),
-        "train_seconds": round(train_sec, 1),
         "before": {
-            "leak_rate": before["leak_rate_overall"],
-            "leak_ci": before["leak_rate_bootstrap"],
             "grader_mean": before["grader_mean"],
+            "leak_rate": before["leak_rate_overall"],
+            "track_a_mean": before["track_a_mean"],
             "fallback_total": before["fallback_total"],
         },
         "after": {
-            "leak_rate": after["leak_rate_overall"],
-            "leak_ci": after["leak_rate_bootstrap"],
             "grader_mean": after["grader_mean"],
+            "leak_rate": after["leak_rate_overall"],
+            "track_a_mean": after["track_a_mean"],
             "fallback_total": after["fallback_total"],
         },
-        "delta_leak_rate": after["leak_rate_overall"] - before["leak_rate_overall"],
         "delta_grader": after["grader_mean"] - before["grader_mean"],
+        "delta_leak_rate": after["leak_rate_overall"] - before["leak_rate_overall"],
+        "updates": update_log,
         "output_dir": str(out_root),
     }
-    (out_root / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    (out_root / "summary.json").write_text(
+        json.dumps(summary, indent=2), encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2), flush=True)
     return summary
 
 
 if modal is not None:
+
+    def _remote_train(model_key: str, mode: str) -> Dict[str, Any]:
+        if model_key not in MODEL_SPECS:
+            raise ValueError(f"Unknown model {model_key!r}; choose from {sorted(MODEL_SPECS)}")
+        spec = MODEL_SPECS[model_key]
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        out_root = Path("/vol/runs") / f"{spec['slug']}-trajectory-{mode}-{stamp}"
+        print(f"Artifacts -> {out_root}", flush=True)
+        try:
+            return _run_training(mode, out_root, model_key=model_key)
+        finally:
+            volume.commit()
+            print("Volume committed; GPU function ending.", flush=True)
+
+    @app.function(
+        image=image,
+        gpu="L4",
+        timeout=TIMEOUT_SEC,
+        scaledown_window=30,
+        max_containers=1,
+        volumes={"/vol": volume},
+    )
+    def train_qwen_06b(mode: str = "proper") -> Dict[str, Any]:
+        return _remote_train("0.6b", mode)
 
     @app.function(
         image=image,
@@ -495,55 +520,57 @@ if modal is not None:
         max_containers=1,
         volumes={"/vol": volume},
     )
-    def train_overnight(mode: str = "proper") -> Dict[str, Any]:
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        out_root = Path("/vol/runs") / f"qwen3-4b-{mode}-{stamp}"
-        print(f"Artifacts -> {out_root}", flush=True)
-        try:
-            summary = _run_training(mode, out_root)
-        finally:
-            volume.commit()
-            print("Volume committed; function returning (GPU will stop).", flush=True)
-        return summary
+    def train_qwen_8b(mode: str = "proper") -> Dict[str, Any]:
+        return _remote_train("8b", mode)
 
     @app.local_entrypoint()
-    def main(mode: str = "proper") -> None:
-        """smoke: block until done. proper: spawn and exit (use --detach)."""
-        print(
-            f"Launching GRPO mode={mode} on A100-40GB "
-            f"(timeout {TIMEOUT_SEC // 3600}h)",
-            flush=True,
-        )
+    def main(mode: str = "proper", model: str = "both") -> None:
+        if mode not in MODE_PRESETS:
+            raise ValueError(f"Unknown mode {mode!r}; choose from {sorted(MODE_PRESETS)}")
+        functions = {"0.6b": train_qwen_06b, "8b": train_qwen_8b}
+        if model == "both":
+            model_keys = list(functions)
+        elif model in functions:
+            model_keys = [model]
+        else:
+            raise ValueError("--model must be one of: 0.6b, 8b, both")
+
+        calls: Dict[str, Any] = {}
+        call_metadata: Dict[str, Any] = {}
+        for model_key in model_keys:
+            spec = MODEL_SPECS[model_key]
+            print(
+                f"Spawning {spec['base_model']} mode={mode} on {spec['gpu']} "
+                f"(hard timeout {TIMEOUT_SEC // 3600}h)",
+                flush=True,
+            )
+            call = functions[model_key].spawn(mode=mode)
+            calls[model_key] = call
+            call_metadata[model_key] = {
+                "call_id": getattr(call, "object_id", None) or str(call),
+                "base_model": spec["base_model"],
+                "gpu": spec["gpu"],
+            }
+
         if mode == "smoke":
-            result = train_overnight.remote(mode=mode)
-            print(json.dumps(result, indent=2), flush=True)
-            print("Smoke finished. GPU released.", flush=True)
+            results = {model_key: call.get() for model_key, call in calls.items()}
+            print(json.dumps(results, indent=2), flush=True)
             return
 
-        call = train_overnight.spawn(mode=mode)
-        call_id = getattr(call, "object_id", None) or str(call)
         stamp_path = REPO_ROOT / "experiments" / "outputs" / "modal_grpo"
         stamp_path.mkdir(parents=True, exist_ok=True)
-        (stamp_path / "last_call.json").write_text(
+        (stamp_path / "last_calls.json").write_text(
             json.dumps(
                 {
-                    "call_id": call_id,
+                    "calls": call_metadata,
                     "mode": mode,
                     "spawned_utc": datetime.now(timezone.utc).isoformat(),
-                    "app": "counterfeint-overnight-grpo",
+                    "app": "counterfeint-trajectory-grpo",
                 },
                 indent=2,
             )
             + "\n",
             encoding="utf-8",
         )
-        print(f"SPAWNED call_id={call_id}", flush=True)
-        print(f"Wrote {stamp_path / 'last_call.json'}", flush=True)
-        print(
-            "Leave this job alone until morning:\n"
-            "  - do not run this script again\n"
-            "  - do not `modal serve` or `modal deploy` this file\n"
-            "  - local edits will not kill it unless you start a new run\n"
-            "  modal app logs counterfeint-overnight-grpo",
-            flush=True,
-        )
+        print(f"SPAWNED {json.dumps(call_metadata)}", flush=True)
+        print("Monitor: modal app logs counterfeint-trajectory-grpo", flush=True)

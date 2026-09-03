@@ -27,6 +27,22 @@ _COMMON_TARGETING_SEGMENTS = [
     "Adults 30-55, interests: finance, investing",
 ]
 
+# Shown to the investigator instead of fake_* / network_* category names.
+_SURFACE_CATEGORY: Dict[str, str] = {
+    "fake_giveaway": "ecommerce",
+    "miracle_cure": "fitness",
+    "counterfeit_goods": "ecommerce",
+    "advance_fee": "saas",
+    "fake_crypto": "saas",
+    "celebrity_endorsement_fraud": "fitness",
+    "clone_brand": "ecommerce",
+    "gray_area_supplements": "fitness",
+    "network_crypto": "saas",
+    "network_ecommerce": "ecommerce",
+    "network_fintech": "saas",
+    "network_health": "fitness",
+}
+
 
 # Curriculum escalation category pools. `_TASK_1_FRAUD_POOL` is the novice
 # fraudster's toolkit (only two obvious scam templates + legit camouflage),
@@ -69,6 +85,12 @@ class TaskConfig:
     max_fraudster_actions_per_turn: Optional[int] = None
     max_investigator_actions_per_turn: Optional[int] = None
     allowed_fraud_categories: Optional[List[str]] = None
+    # 0 = current (labels on the surface). 1 = hide risk_signals, mix stealth
+    # landing pages. 2 = camouflage category + stealth LP + quiet profiles.
+    # 3 = task_4: chain rings, payment-only shared signal, legit decoys.
+    stealth_level: int = 0
+    ring_topologies: Optional[List[str]] = None
+    ring_signal_keys: Optional[List[str]] = None
 
 
 TASK_CONFIGS: Dict[str, TaskConfig] = {
@@ -122,6 +144,7 @@ TASK_CONFIGS: Dict[str, TaskConfig] = {
         max_fraudster_actions_per_turn=3,
         max_investigator_actions_per_turn=6,
         allowed_fraud_categories=_TASK_2_ALLOWED_CATEGORIES,
+        stealth_level=1,
     ),
     "task_3": TaskConfig(
         task_id="task_3",
@@ -134,21 +157,23 @@ TASK_CONFIGS: Dict[str, TaskConfig] = {
         n_escalate=4,
         include_networks=True,
         n_fraud_rings=3,
-        allowed_difficulties=["easy", "medium", "hard"],
+        allowed_difficulties=["hard"],
         description=(
             "Full challenge including coordinated fraud rings. 20 ads with 3 "
             "hidden fraud networks using varied topologies (cliques, chains, "
-            "hub-and-spoke). Budget of 35 actions (~1.75 per ad). Ring member "
-            "ads look borderline individually — the agent must cross-reference "
-            "investigation data across ads to detect shared signals. "
-            "Sophisticated Fraudster: 5 rounds, 7 proposals, full category "
-            "palette including network_* ring templates."
+            "hub-and-spoke). Queue copy is camouflaged (network_* templates "
+            "only). Landing pages no longer print scam-similarity scores. "
+            "Budget of 35 actions (~1.75 per ad). Ring member ads look "
+            "borderline individually — the agent must cross-reference "
+            "payment IDs across ads. Sophisticated Fraudster: 5 rounds, "
+            "7 proposals."
         ),
         max_rounds=5,
         max_proposals=7,
         max_fraudster_actions_per_turn=3,
         max_investigator_actions_per_turn=7,
         allowed_fraud_categories=None,
+        stealth_level=2,
     ),
     # Held-out generalisation eval — same template universe + ring topologies
     # as task_3, but a strictly tighter budget regime (25 ads / 30 actions =
@@ -169,7 +194,7 @@ TASK_CONFIGS: Dict[str, TaskConfig] = {
         n_escalate=5,
         include_networks=True,
         n_fraud_rings=4,
-        allowed_difficulties=["easy", "medium", "hard"],
+        allowed_difficulties=["hard"],
         description=(
             "Held-out generalisation eval. Same fraud + escalate templates "
             "and ring topologies as task_3, but the budget regime is "
@@ -184,6 +209,38 @@ TASK_CONFIGS: Dict[str, TaskConfig] = {
         max_fraudster_actions_per_turn=3,
         max_investigator_actions_per_turn=7,
         allowed_fraud_categories=None,
+        stealth_level=2,
+    ),
+    "task_4": TaskConfig(
+        task_id="task_4",
+        name="Camouflaged Chain Rings Under Injection Pressure",
+        difficulty="hard",
+        queue_size=24,
+        action_budget=22,
+        n_legit=8,
+        n_fraud=12,
+        n_escalate=4,
+        include_networks=True,
+        n_fraud_rings=4,
+        allowed_difficulties=["hard"],
+        description=(
+            "Long-horizon eval. Every ad looks like ordinary ecommerce/SaaS. "
+            "Landing pages have valid SSL, aged .com domains, and scam-"
+            "similarity < 25%. Rings are chains: A shares a payment ID with "
+            "B, B with C — A never shares with C. Two legit ads reuse a ring "
+            "registrar as decoys. Fraudster keeps injecting mid-episode "
+            "(10 extra proposals). Budget ~0.9 actions/ad. Single-ad "
+            "keyword matching cannot solve this; the investigator must "
+            "compare payment IDs across turns."
+        ),
+        max_rounds=6,
+        max_proposals=10,
+        max_fraudster_actions_per_turn=3,
+        max_investigator_actions_per_turn=6,
+        allowed_fraud_categories=list(_LEGIT_CAMOUFLAGE),
+        stealth_level=3,
+        ring_topologies=["chain"],
+        ring_signal_keys=["payment_method"],
     ),
 }
 
@@ -283,8 +340,10 @@ def generate_episode(seed: int, task_id: str = "task_1") -> GeneratedEpisode:
     ring_shared_payments: Dict[str, str] = {}
 
     if config.include_networks and config.n_fraud_rings > 0:
-        fraud_rings, ad_to_rings = generate_fraud_networks(
-            rng, config.n_fraud_rings, fraud_ad_ids
+        fraud_rings, ad_to_rings =         generate_fraud_networks(
+            rng, config.n_fraud_rings, fraud_ad_ids,
+            topologies=config.ring_topologies,
+            signal_keys=config.ring_signal_keys,
         )
         for ring in fraud_rings:
             if "payment_method" in ring.shared_signals:
@@ -314,11 +373,16 @@ def generate_episode(seed: int, task_id: str = "task_1") -> GeneratedEpisode:
 
     for ad in ads:
         is_fraud = ad.ground_truth_label in ("fraud", "escalate")
+        stealth = config.stealth_level >= 2
+        stealth_lp = config.stealth_level >= 2 or (
+            config.stealth_level >= 1 and is_fraud and rng.random() < 0.5
+        )
 
         profile = generate_advertiser_profile(
             rng, ad.ad_id, is_fraud,
             payment_method_id=ring_shared_payments.get(ad.ad_id),
             ring_created_date=ring_created_dates.get(ad.ad_id),
+            stealth=stealth,
         )
         advertiser_profiles[ad.ad_id] = profile
 
@@ -337,20 +401,45 @@ def generate_episode(seed: int, task_id: str = "task_1") -> GeneratedEpisode:
             landing_page_kwargs["registrar_override"] = rng.choice(_DECOY_REGISTRARS)
 
         lp = generate_landing_page(
-            rng, ad.ad_id, is_fraud, ad.fraud_type, **landing_page_kwargs
+            rng, ad.ad_id, is_fraud, ad.fraud_type,
+            stealth=stealth_lp,
+            **landing_page_kwargs,
         )
         landing_pages[ad.ad_id] = lp
 
         inv = {}
         inv["advertiser_history"] = profile.to_investigation_text()
         inv["landing_page"] = lp.to_investigation_text()
-        inv["payment_method"] = _generate_payment_investigation(rng, profile, ad.ad_id, ad_to_rings, fraud_rings)
+        inv["payment_method"] = _generate_payment_investigation(
+            rng, profile, ad.ad_id, ad_to_rings, fraud_rings,
+            lecture=(config.stealth_level < 1),
+        )
         inv["targeting_overlap"] = _generate_targeting_investigation(rng, ad, ads, ad_to_rings, fraud_rings)
         inv["campaign_structure"] = _generate_campaign_investigation(
             rng, ad, campaign, profile, ad_to_rings, fraud_rings,
         )
-        inv["policy_classifier"] = _generate_policy_classifier_investigation(ad, lp)
+        inv["policy_classifier"] = _generate_policy_classifier_investigation(
+            ad, lp, use_ground_truth=config.stealth_level < 2,
+        )
         investigation_data[ad.ad_id] = inv
+
+    if config.stealth_level >= 3:
+        fraud_lps = [
+            landing_pages[a.ad_id]
+            for a in ads
+            if a.ground_truth_label == "fraud" and a.ad_id in landing_pages
+        ]
+        legit_ids = [a.ad_id for a in ads if a.ground_truth_label == "legit"]
+        if fraud_lps and legit_ids:
+            from dataclasses import replace as _replace
+            donor = rng.choice(fraud_lps)
+            for ad_id in rng.sample(legit_ids, min(2, len(legit_ids))):
+                landing_pages[ad_id] = _replace(
+                    landing_pages[ad_id], registrar=donor.registrar
+                )
+                investigation_data[ad_id]["landing_page"] = (
+                    landing_pages[ad_id].to_investigation_text()
+                )
 
     return GeneratedEpisode(
         task_config=config,
@@ -391,9 +480,9 @@ def _generate_ad_queue(rng: random.Random, config: TaskConfig) -> List[Ad]:
         ads.append(Ad(
             ad_id=f"ad_{ad_counter:03d}",
             ad_copy=template.ad_copies[idx],
-            category=template.category,
+            category=_surface_category(template.category, config.stealth_level),
             targeting_summary=template.targeting_hints[idx % len(template.targeting_hints)],
-            initial_risk_signals=list(template.risk_signals),
+            initial_risk_signals=[] if config.stealth_level >= 1 else list(template.risk_signals),
             ground_truth_label=template.label,
             fraud_type=template.fraud_type,
             severity=template.severity,
@@ -410,9 +499,9 @@ def _generate_ad_queue(rng: random.Random, config: TaskConfig) -> List[Ad]:
         ads.append(Ad(
             ad_id=f"ad_{ad_counter:03d}",
             ad_copy=template.ad_copies[idx],
-            category=template.category,
+            category=_surface_category(template.category, config.stealth_level),
             targeting_summary=template.targeting_hints[idx % len(template.targeting_hints)],
-            initial_risk_signals=list(template.risk_signals),
+            initial_risk_signals=[] if config.stealth_level >= 1 else list(template.risk_signals),
             ground_truth_label="fraud",
             fraud_type=template.fraud_type,
             severity=template.severity,
@@ -427,9 +516,9 @@ def _generate_ad_queue(rng: random.Random, config: TaskConfig) -> List[Ad]:
             ads.append(Ad(
                 ad_id=f"ad_{ad_counter:03d}",
                 ad_copy=template.ad_copies[idx],
-                category=template.category,
+                category=_surface_category(template.category, config.stealth_level),
                 targeting_summary=template.targeting_hints[idx % len(template.targeting_hints)],
-                initial_risk_signals=list(template.risk_signals),
+                initial_risk_signals=[] if config.stealth_level >= 1 else list(template.risk_signals),
                 ground_truth_label="escalate",
                 fraud_type=template.fraud_type,
                 severity=template.severity,
@@ -446,12 +535,20 @@ def _generate_ad_queue(rng: random.Random, config: TaskConfig) -> List[Ad]:
     return renumbered
 
 
+def _surface_category(category: str, stealth_level: int) -> str:
+    if stealth_level < 2:
+        return category
+    return _SURFACE_CATEGORY.get(category, category)
+
+
 def _generate_payment_investigation(
     rng: random.Random,
     profile: AdvertiserProfile,
     ad_id: str,
     ad_to_rings: Dict[str, List[str]],
     fraud_rings: List[FraudRing],
+    *,
+    lecture: bool = True,
 ) -> str:
     """Generate payment method investigation text.
 
@@ -464,7 +561,7 @@ def _generate_payment_investigation(
         f"  Payment ID: {profile.payment_method_id}",
     ]
 
-    if profile.payment_method_type in ("prepaid_card", "crypto", "virtual_card"):
+    if lecture and profile.payment_method_type in ("prepaid_card", "crypto", "virtual_card"):
         lines.append(f"  Note: {profile.payment_method_type} payments have elevated fraud correlation in platform data.")
 
     if profile.previous_violations > 0:
@@ -530,6 +627,8 @@ def _generate_targeting_investigation(
 def _generate_policy_classifier_investigation(
     ad: Ad,
     landing_page: Optional[LandingPageData] = None,
+    *,
+    use_ground_truth: bool = True,
 ) -> str:
     """Mock Llama Guard 3 / Purple Llama classification for the ad.
 
@@ -546,8 +645,8 @@ def _generate_policy_classifier_investigation(
         ad_id=ad.ad_id,
         ad_copy=ad.ad_copy,
         landing_page_text=landing_text,
-        ground_truth_label=ad.ground_truth_label,
-        fraud_type=ad.fraud_type or None,
+        ground_truth_label=ad.ground_truth_label if use_ground_truth else None,
+        fraud_type=ad.fraud_type or None if use_ground_truth else None,
     )
     return result.to_investigation_text()
 
@@ -651,6 +750,7 @@ def generate_proposal_data(
     landing_page_blurb: Optional[str] = None,
     targeting_summary: Optional[str] = None,
     existing_ads: Optional[List[Ad]] = None,
+    stealth: bool = False,
 ) -> Tuple[Ad, Dict[str, str], AdvertiserProfile, CampaignProfile, "LandingPageData"]:
     """
     Build a fully-formed Ad + investigation_data for a Fraudster-proposed ad.
@@ -682,16 +782,20 @@ def generate_proposal_data(
             if targeting_summary
             else template.targeting_hints[0]
         ),
-        initial_risk_signals=list(template.risk_signals),
+        initial_risk_signals=[] if stealth else list(template.risk_signals),
         ground_truth_label="fraud",
         fraud_type=template.fraud_type or "fraudster_proposal",
         severity=template.severity if template.severity > 0 else 0.6,
         difficulty=template.difficulty,
     )
+    if stealth:
+        ad.category = _surface_category(ad.category, stealth_level=2)
 
-    profile = generate_advertiser_profile(rng, ad_id, is_fraud=True)
+    profile = generate_advertiser_profile(rng, ad_id, is_fraud=True, stealth=stealth)
     campaign = _generate_campaign_profile(rng, ad, is_fraud=True)
-    landing_page = generate_landing_page(rng, ad_id, is_fraud=True, fraud_type=ad.fraud_type)
+    landing_page = generate_landing_page(
+        rng, ad_id, is_fraud=True, fraud_type=ad.fraud_type, stealth=stealth,
+    )
 
     if landing_page_blurb:
         from dataclasses import replace
@@ -707,7 +811,8 @@ def generate_proposal_data(
         "advertiser_history": profile.to_investigation_text(),
         "landing_page": landing_page.to_investigation_text(),
         "payment_method": _generate_payment_investigation(
-            rng, profile, ad_id, ad_to_rings={}, fraud_rings=[]
+            rng, profile, ad_id, ad_to_rings={}, fraud_rings=[],
+            lecture=not stealth,
         ),
         "targeting_overlap": _generate_targeting_investigation(
             rng, ad, siblings, ad_to_rings={}, fraud_rings=[]
@@ -715,7 +820,9 @@ def generate_proposal_data(
         "campaign_structure": _generate_campaign_investigation(
             rng, ad, campaign, profile, ad_to_rings={}, fraud_rings=[]
         ),
-        "policy_classifier": _generate_policy_classifier_investigation(ad, landing_page),
+        "policy_classifier": _generate_policy_classifier_investigation(
+            ad, landing_page, use_ground_truth=not stealth,
+        ),
     }
 
     return ad, investigation_data, profile, campaign, landing_page

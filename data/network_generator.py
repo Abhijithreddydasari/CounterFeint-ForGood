@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 
@@ -98,6 +98,9 @@ def generate_fraud_networks(
     rng: random.Random,
     n_rings: int,
     available_fraud_ad_ids: List[str],
+    *,
+    topologies: Optional[List[str]] = None,
+    signal_keys: Optional[List[str]] = None,
 ) -> Tuple[List[FraudRing], Dict[str, List[str]]]:
     """
     Generate fraud ring structures with complex topologies.
@@ -127,18 +130,25 @@ def generate_fraud_networks(
         members = remaining[:ring_size]
         remaining = remaining[ring_size:]
 
-        # Rotate through the Meta CIB case studies deterministically so that
-        # every task_3 episode showcases at least one clique, one chain, and
-        # one hub-spoke pattern when n_rings >= 3.
-        case_study = RING_CASE_STUDIES[i % len(RING_CASE_STUDIES)]
-        topology = case_study["topology"]
+        if topologies:
+            topology = topologies[i % len(topologies)]
+            case_study = next(
+                (cs for cs in RING_CASE_STUDIES if cs["topology"] == topology),
+                RING_CASE_STUDIES[i % len(RING_CASE_STUDIES)],
+            )
+        else:
+            case_study = RING_CASE_STUDIES[i % len(RING_CASE_STUDIES)]
+            topology = case_study["topology"]
 
         signal_pool = _make_signal_pool(rng, i)
 
-        signal_keys = list(_SIGNAL_POOL_KEYS)
-        rng.shuffle(signal_keys)
-        n_shared = rng.randint(2, len(signal_keys))
-        shared_signals = {k: signal_pool[k] for k in signal_keys[:n_shared]}
+        if signal_keys:
+            shared_signals = {k: signal_pool[k] for k in signal_keys if k in signal_pool}
+        else:
+            signal_key_list = list(_SIGNAL_POOL_KEYS)
+            rng.shuffle(signal_key_list)
+            n_shared = rng.randint(2, len(signal_key_list))
+            shared_signals = {k: signal_pool[k] for k in signal_key_list[:n_shared]}
 
         _add_edges_for_topology(G, members, shared_signals, topology, rng)
 

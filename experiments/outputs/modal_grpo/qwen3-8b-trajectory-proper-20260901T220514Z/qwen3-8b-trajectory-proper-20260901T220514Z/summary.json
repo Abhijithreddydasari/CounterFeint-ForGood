@@ -1,0 +1,74 @@
+{
+  "mode": "proper",
+  "base_model": "Qwen/Qwen3-8B",
+  "model_key": "8b",
+  "gpu_requested": "A100-40GB",
+  "algorithm": "trajectory_group_relative_policy_optimisation",
+  "reward_mode": "terminal_environment_reward",
+  "frozen_fraudster": "ReactiveFraudster",
+  "long_horizon": true,
+  "group_size": 4,
+  "n_groups": 5,
+  "n_training_trajectories": 20,
+  "n_training_turns": 640,
+  "n_fraudster_proposals": 116,
+  "train_seconds": 1841.1,
+  "finished_utc": "2026-09-01T22:51:59.917593+00:00",
+  "before": {
+    "grader_mean": 0.6857135748265901,
+    "leak_rate": 0.028037383177570093,
+    "track_a_mean": 0.0,
+    "fallback_total": 0
+  },
+  "after": {
+    "grader_mean": 0.6849003575286077,
+    "leak_rate": 0.028037383177570093,
+    "track_a_mean": 0.0,
+    "fallback_total": 0
+  },
+  "delta_grader": -0.0008132172979824492,
+  "delta_leak_rate": 0.0,
+  "updates": [
+    {
+      "loss": 1.1175870895385742e-08,
+      "grad_norm": 0.13949929177761078,
+      "updated_turns": 96.0,
+      "task_id": "task_2",
+      "seed": 21,
+      "group_number": 1
+    },
+    {
+      "loss": -4.0512531995773315e-05,
+      "grad_norm": 0.1499054729938507,
+      "updated_turns": 136.0,
+      "task_id": "task_3",
+      "seed": 31,
+      "group_number": 2
+    },
+    {
+      "loss": -2.0733103156089783e-05,
+      "grad_norm": 0.10084722936153412,
+      "updated_turns": 136.0,
+      "task_id": "task_3",
+      "seed": 32,
+      "group_number": 3
+    },
+    {
+      "loss": -0.00014545442536473274,
+      "grad_norm": 0.1442784070968628,
+      "updated_turns": 136.0,
+      "task_id": "task_3",
+      "seed": 33,
+      "group_number": 4
+    },
+    {
+      "loss": -8.867548126545444e-05,
+      "grad_norm": 0.12205258756875992,
+      "updated_turns": 136.0,
+      "task_id": "task_3",
+      "seed": 34,
+      "group_number": 5
+    }
+  ],
+  "output_dir": "/vol/runs/qwen3-8b-trajectory-proper-20260901T220514Z"
+}

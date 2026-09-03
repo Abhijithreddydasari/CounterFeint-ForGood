@@ -1,0 +1,108 @@
+{
+  "tag": "before_trajectory_grpo",
+  "model": "Qwen/Qwen3-0.6B",
+  "n_episodes": 7,
+  "leak_rate_overall": 0.2523364485981308,
+  "leak_rate_bootstrap": {
+    "mean": 0.2609965198200492,
+    "lo": 0.10313216195569137,
+    "hi": 0.4412698412698412
+  },
+  "grader_mean": 0.507469235899203,
+  "track_a_mean": 0.0,
+  "fallback_total": 9,
+  "call_total": 203,
+  "episodes": [
+    {
+      "tag": "before_trajectory_grpo",
+      "task_id": "task_2",
+      "seed": 2001,
+      "grader_score": 0.5840102203812121,
+      "track_a_score": 0.0,
+      "n_fraud_leaks": 2,
+      "n_ground_truth_fraud": 10,
+      "fallback_count": 0,
+      "call_count": 24,
+      "steps": 36,
+      "n_fraudster_proposals": 5
+    },
+    {
+      "tag": "before_trajectory_grpo",
+      "task_id": "task_2",
+      "seed": 2002,
+      "grader_score": 0.6760916171031854,
+      "track_a_score": 0.0,
+      "n_fraud_leaks": 3,
+      "n_ground_truth_fraud": 11,
+      "fallback_count": 1,
+      "call_count": 24,
+      "steps": 35,
+      "n_fraudster_proposals": 6
+    },
+    {
+      "tag": "before_trajectory_grpo",
+      "task_id": "task_3",
+      "seed": 3001,
+      "grader_score": 0.41683747087831946,
+      "track_a_score": 0.0,
+      "n_fraud_leaks": 3,
+      "n_ground_truth_fraud": 17,
+      "fallback_count": 1,
+      "call_count": 28,
+      "steps": 39,
+      "n_fraudster_proposals": 7
+    },
+    {
+      "tag": "before_trajectory_grpo",
+      "task_id": "task_3",
+      "seed": 3002,
+      "grader_score": 0.23000327800861942,
+      "track_a_score": 0.0,
+      "n_fraud_leaks": 11,
+      "n_ground_truth_fraud": 15,
+      "fallback_count": 3,
+      "call_count": 35,
+      "steps": 50,
+      "n_fraudster_proposals": 5
+    },
+    {
+      "tag": "before_trajectory_grpo",
+      "task_id": "task_3",
+      "seed": 3003,
+      "grader_score": 0.6670224607443732,
+      "track_a_score": 0.0,
+      "n_fraud_leaks": 0,
+      "n_ground_truth_fraud": 16,
+      "fallback_count": 2,
+      "call_count": 34,
+      "steps": 49,
+      "n_fraudster_proposals": 6
+    },
+    {
+      "tag": "before_trajectory_grpo",
+      "task_id": "task_3_unseen",
+      "seed": 4001,
+      "grader_score": 0.6097606727688005,
+      "track_a_score": 0.0,
+      "n_fraud_leaks": 0,
+      "n_ground_truth_fraud": 20,
+      "fallback_count": 0,
+      "call_count": 28,
+      "steps": 39,
+      "n_fraudster_proposals": 8
+    },
+    {
+      "tag": "before_trajectory_grpo",
+      "task_id": "task_3_unseen",
+      "seed": 4002,
+      "grader_score": 0.36855893140991086,
+      "track_a_score": 0.0,
+      "n_fraud_leaks": 8,
+      "n_ground_truth_fraud": 18,
+      "fallback_count": 2,
+      "call_count": 30,
+      "steps": 45,
+      "n_fraudster_proposals": 6
+    }
+  ]
+}

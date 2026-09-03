@@ -113,6 +113,7 @@ def extend_episode_with_proposal(
         landing_page_blurb=landing_page_blurb,
         targeting_summary=targeting_summary,
         existing_ads=list(episode.ads),
+        stealth=episode.task_config.stealth_level >= 2,
     )
 
     episode.ads.append(ad)
